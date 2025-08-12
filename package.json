@@ -14,7 +14,8 @@
     "audit": "npm audit",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist",
-    "prebuild": "npm run clean"
+    "prebuild": "npm run clean",
+    "migrate-users": "npm run build && node dist/scripts/migrate-to-supabase-auth.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",

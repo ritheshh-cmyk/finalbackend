@@ -4,8 +4,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { pool } from "./db";
 import type { Server as SocketIOServer } from "socket.io";
-import authRoutes from "./auth-routes";
-import { requireAuth, requireRole, requireNotDemo } from './auth-routes';
+import { requireAuth, requireRole, requireNotDemo } from './supabase-auth-middleware';
 import { 
   insertTransactionSchema, 
   insertInventoryItemSchema, 
@@ -20,9 +19,6 @@ import ExcelJS from "exceljs";
 import axios from 'axios';
 
 export async function registerRoutes(app: Express, io: SocketIOServer): Promise<void> {
-  // Auth routes (no auth required)
-  app.use("/api/auth", authRoutes);
-  
   // Health endpoint (no auth required)
   app.get('/health', async (req, res) => {
     try {
@@ -30,11 +26,12 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
       const result = await pool.query('SELECT NOW() as current_time');
       res.json({ 
         status: 'OK', 
-        message: 'Mobile Repair Tracker Backend is running', 
+        message: 'Mobile Repair Tracker Backend is running with Supabase Auth', 
         timestamp: new Date().toISOString(), 
         port: process.env.PORT || 10000,
         database: 'connected',
-        dbTime: result.rows[0]?.current_time
+        dbTime: result.rows[0]?.current_time,
+        auth: 'supabase'
       });
     } catch (error) {
       console.error('❌ Health check failed:', error.message);
@@ -44,6 +41,7 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
         timestamp: new Date().toISOString(), 
         port: process.env.PORT || 10000,
         database: 'disconnected',
+        auth: 'supabase',
         error: error.message
       });
     }

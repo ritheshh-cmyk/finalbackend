@@ -3,7 +3,7 @@ import logger from './logger';
 import { initializeDatabase } from '../lib/database';
 import { ensureDefaultUser } from './storage';
 // Force production mode to disable Express HTML views
-// Deployment: 2025-08-12 - Fix authentication issue
+// Deployment: 2025-08-12 - Switch to Supabase Auth
 process.env.NODE_ENV = 'production';
 import express from 'express';
 import cors from 'cors';
@@ -17,6 +17,8 @@ import { Request, Response, NextFunction } from 'express';
 import { sendWhatsAppMessage } from "./whatsapp";
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
+import SupabaseRealtimeService from './supabase-realtime-service';
+import supabaseAuthRoutes from './supabase-auth-routes';
 
 const swaggerOptions = {
   definition: {
@@ -216,10 +218,14 @@ export async function startServer() {
     // Initialize database schema before anything else
     await initializeDatabase();
 
-    // Ensure admin user exists and has password lucky@777
-    await ensureDefaultUser('admin', 'lucky@777', 'admin');
+    // Note: With Supabase Auth, users are managed through Supabase Dashboard
+    // or via the register endpoint. Default users should be created via migration.
+    logger.info('🔄 Using Supabase Auth - default users managed via database migration');
 
-    // Register all API routes
+    // Register Supabase Auth routes
+    app.use('/api/auth', supabaseAuthRoutes);
+
+    // Register all other API routes
     await registerRoutes(app, io);
 
     // Catch-all 404 for /api/* (must be last)
@@ -227,26 +233,30 @@ export async function startServer() {
       res.status(404).json({ error: 'API endpoint not found' });
     });
     
-    // Socket.IO connection handling
-    io.on('connection', (socket) => {
-      logger.info('Client connected: ' + socket.id);
-      
-      socket.on('disconnect', () => {
-        logger.info('Client disconnected: ' + socket.id);
-      });
-    });
+    // Initialize Supabase Realtime Service for WebSocket
+    const realtimeService = new SupabaseRealtimeService(io);
+    
+    // Make realtime service available globally for broadcasting
+    (global as any).realtimeService = realtimeService;
 
-    // Ensure JWT secret is loaded from env
-    if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET environment variable is required!');
+    // Verify Supabase environment variables
+    const requiredSupabaseEnvs = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
+    for (const envVar of requiredSupabaseEnvs) {
+      if (!process.env[envVar]) {
+        throw new Error(`${envVar} environment variable is required for Supabase Auth!`);
+      }
     }
+
+    logger.info('✅ Supabase Auth environment variables verified');
 
     const PORT = process.env.PORT || 10000;
 
     server.listen(PORT, () => {
-      logger.info(`✅ Server running on port ${PORT}`);
+      logger.info(`✅ Server running on port ${PORT} with Supabase Auth`);
       logger.info(`🌐 Health check: http://localhost:${PORT}/health`);
       logger.info(`📊 API endpoints available at: http://localhost:${PORT}/api`);
+      logger.info(`🔐 Supabase Auth endpoints: http://localhost:${PORT}/api/auth`);
+      logger.info(`🔌 WebSocket server ready with Supabase integration`);
     });
     
     return server;
