@@ -1,4 +1,4 @@
-# Backend Dockerfile
+# Backend Dockerfile - Updated for Digital Ocean deployment
 FROM node:20-alpine
 
 WORKDIR /app
