@@ -8,12 +8,11 @@
   "scripts": {
     "start": "node dist/server/index.js",
     "dev": "npm run build && node dist/server/index.js",
-    "build": "npx tsc",
-    "postinstall": "npm run build",
+    "build": "tsc --project tsconfig.json",
     "lint": "echo 'No linting configured - skipping'",
     "test": "NODE_ENV=test jest --passWithNoTests",
     "audit": "npm audit",
-    "typecheck": "npx tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "clean": "rimraf dist",
     "prebuild": "npm run clean"
   },
