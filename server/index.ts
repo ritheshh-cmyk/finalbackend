@@ -3,6 +3,7 @@ import logger from './logger';
 import { initializeDatabase } from '../lib/database';
 import { ensureDefaultUser } from './storage';
 // Force production mode to disable Express HTML views
+// Deployment: 2025-08-12 - Fix authentication issue
 process.env.NODE_ENV = 'production';
 import express from 'express';
 import cors from 'cors';
