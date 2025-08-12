@@ -1,0 +1,39 @@
+node_modules
+npm-debug.log
+.DS_Store
+.git
+.gitignore
+README.md
+.nyc_output
+coverage
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+logs
+*.log
+.npm
+.eslintcache
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Test files
+test-*.js
+*test*.js
+*.test.js
+comprehensive-test*
+data-fetching-test*
+endpoint-test*
+final-*-status-report.md
+
+# Build artifacts from local development
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.temp
