@@ -1,0 +1,278 @@
+{
+  "summary": {
+    "totalTests": 23,
+    "passedTests": 18,
+    "failedTests": 5,
+    "successRate": "78.26%",
+    "timestamp": "2025-08-05T13:02:56.656Z"
+  },
+  "results": [
+    {
+      "endpoint": "/health",
+      "method": "GET",
+      "description": "Health check",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "{\"status\":\"OK\",\"message\":\"Mobile Repair Tracker Backend is running\"}..."
+    },
+    {
+      "endpoint": "/api/version",
+      "method": "GET",
+      "description": "API version",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "{\"version\":\"1.0.0\",\"name\":\"Mobile Repair Tracker Backend\"}..."
+    },
+    {
+      "endpoint": "/api/dashboard",
+      "method": "GET",
+      "description": "Dashboard data",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "{\"totals\":{\"totalTransactions\":0,\"totalRevenue\":0,\"pendingTransactions\":0,\"totalBills\":0,\"unpaidBills\":0,\"lowStockItems\":0},\"recentTransactions\":[],\"topSuppliers\":[]}..."
+    },
+    {
+      "endpoint": "/api/statistics/today",
+      "method": "GET",
+      "description": "Today statistics",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "{\"statistics\":{\"today\":{\"transactions\":0,\"revenue\":0,\"bills\":0,\"billsTotal\":0}}}..."
+    },
+    {
+      "endpoint": "/api/transactions",
+      "method": "GET",
+      "description": "Get all transactions",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "[]..."
+    },
+    {
+      "endpoint": "/api/transactions",
+      "method": "POST",
+      "description": "Create transaction",
+      "success": false,
+      "status": 500,
+      "error": {
+        "success": false,
+        "error": "Failed to create transaction",
+        "details": "Could not find the 'created_by' column of 'transactions' in the schema cache"
+      },
+      "responseData": null
+    },
+    {
+      "endpoint": "/api/suppliers",
+      "method": "GET",
+      "description": "Get all suppliers",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "[{\"id\":1,\"name\":\"Default Supplier\",\"contact_number\":\"1234567890\",\"address\":\"Default Address\",\"shop_id\":\"default\",\"created_at\":\"2025-08-05T06:58:33.379864+00:00\"},{\"id\":2,\"name\":\"Parts Supplier\",\"conta..."
+    },
+    {
+      "endpoint": "/api/suppliers",
+      "method": "POST",
+      "description": "Create supplier",
+      "success": false,
+      "status": 500,
+      "error": {
+        "message": "Failed to create supplier"
+      },
+      "responseData": null
+    },
+    {
+      "endpoint": "/api/bills",
+      "method": "GET",
+      "description": "Get all bills",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "[]..."
+    },
+    {
+      "endpoint": "/api/bills",
+      "method": "POST",
+      "description": "Create bill",
+      "success": false,
+      "status": 500,
+      "error": {
+        "error": "Failed to create bill",
+        "details": "Could not find the 'final_amount' column of 'bills' in the schema cache"
+      },
+      "responseData": null
+    },
+    {
+      "endpoint": "/api/inventory",
+      "method": "GET",
+      "description": "Get all inventory items",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "[]..."
+    },
+    {
+      "endpoint": "/api/inventory",
+      "method": "POST",
+      "description": "Create inventory item",
+      "success": false,
+      "status": 400,
+      "error": {
+        "message": "Validation error",
+        "errors": [
+          {
+            "code": "invalid_type",
+            "expected": "string",
+            "received": "undefined",
+            "path": [
+              "partName"
+            ],
+            "message": "Required"
+          },
+          {
+            "code": "invalid_type",
+            "expected": "string",
+            "received": "undefined",
+            "path": [
+              "partType"
+            ],
+            "message": "Required"
+          },
+          {
+            "code": "invalid_type",
+            "expected": "number",
+            "received": "nan",
+            "path": [
+              "cost"
+            ],
+            "message": "Expected number, received nan"
+          },
+          {
+            "code": "invalid_type",
+            "expected": "number",
+            "received": "nan",
+            "path": [
+              "sellingPrice"
+            ],
+            "message": "Expected number, received nan"
+          },
+          {
+            "code": "invalid_type",
+            "expected": "string",
+            "received": "undefined",
+            "path": [
+              "supplier"
+            ],
+            "message": "Required"
+          }
+        ]
+      },
+      "responseData": null
+    },
+    {
+      "endpoint": "/api/notifications",
+      "method": "GET",
+      "description": "Get all notifications",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "{\"notifications\":[]}..."
+    },
+    {
+      "endpoint": "/api/settings",
+      "method": "GET",
+      "description": "Get all settings",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "{\"settings\":[{\"id\":1,\"user_id\":null,\"setting_key\":\"app_name\",\"setting_value\":\"Mobile Repair Tracker\",\"setting_type\":\"system\",\"description\":\"Application name\",\"is_public\":true,\"shop_id\":\"default\",\"crea..."
+    },
+    {
+      "endpoint": "/api/activity-log",
+      "method": "GET",
+      "description": "Get activity log",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "{\"logs\":[]}..."
+    },
+    {
+      "endpoint": "/api/purchase-orders",
+      "method": "GET",
+      "description": "Get all purchase orders",
+      "success": false,
+      "status": 500,
+      "error": {
+        "message": "Failed to fetch purchase orders"
+      },
+      "responseData": null
+    },
+    {
+      "endpoint": "/api/reports",
+      "method": "GET",
+      "description": "Get all reports",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "[{\"id\":6,\"name\":\"Profit Analysis Report\",\"type\":\"financial\",\"description\":\"Profit analysis by repair type and time period\",\"parameters\":{\"period\":\"monthly\",\"group_by\":\"repair_type\"},\"data\":{},\"file_pa..."
+    },
+    {
+      "endpoint": "/api/reports?dateRange=today",
+      "method": "GET",
+      "description": "Get today reports",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "[{\"id\":6,\"name\":\"Profit Analysis Report\",\"type\":\"financial\",\"description\":\"Profit analysis by repair type and time period\",\"parameters\":{\"period\":\"monthly\",\"group_by\":\"repair_type\"},\"data\":{},\"file_pa..."
+    },
+    {
+      "endpoint": "/api/search?q=test",
+      "method": "GET",
+      "description": "Global search",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "{\"query\":\"test\",\"transactions\":[],\"suppliers\":[{\"id\":1,\"name\":\"Default Supplier\",\"contact_number\":\"1234567890\",\"address\":\"Default Address\",\"shop_id\":\"default\",\"created_at\":\"2025-08-05T06:58:33.379864+..."
+    },
+    {
+      "endpoint": "/api/stats/today",
+      "method": "GET",
+      "description": "Today stats",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "{\"transactions\":0,\"revenue\":0,\"bills\":0,\"billsTotal\":0}..."
+    },
+    {
+      "endpoint": "/api/stats/week",
+      "method": "GET",
+      "description": "Week stats",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "{\"transactions\":0,\"revenue\":0}..."
+    },
+    {
+      "endpoint": "/api/stats/month",
+      "method": "GET",
+      "description": "Month stats",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "{\"transactions\":0,\"revenue\":0}..."
+    },
+    {
+      "endpoint": "/api/stats/year",
+      "method": "GET",
+      "description": "Year stats",
+      "success": true,
+      "status": 200,
+      "error": null,
+      "responseData": "{\"transactions\":0,\"revenue\":0}..."
+    }
+  ]
+}

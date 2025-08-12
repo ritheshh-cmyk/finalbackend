@@ -1,0 +1,881 @@
+{
+  "timestamp": "2025-08-05T13:39:29.188Z",
+  "summary": {
+    "total_endpoints": 18,
+    "successful": 17,
+    "failed": 1,
+    "success_rate": 94
+  },
+  "categories": {
+    "suppliers": [
+      {
+        "success": true,
+        "status": 200,
+        "data": [
+          {
+            "id": 1,
+            "name": "Default Supplier",
+            "contact_number": "1234567890",
+            "address": "Default Address",
+            "shop_id": "default",
+            "created_at": "2025-08-05T06:58:33.379864+00:00"
+          },
+          {
+            "id": 2,
+            "name": "Parts Supplier",
+            "contact_number": "0987654321",
+            "address": "Parts Address",
+            "shop_id": "default",
+            "created_at": "2025-08-05T06:58:33.379864+00:00"
+          }
+        ],
+        "endpoint": "/api/suppliers",
+        "description": "Get all suppliers",
+        "method": "GET"
+      }
+    ],
+    "reports": [
+      {
+        "success": true,
+        "status": 200,
+        "data": [
+          {
+            "id": 6,
+            "name": "Profit Analysis Report",
+            "type": "financial",
+            "description": "Profit analysis by repair type and time period",
+            "parameters": {
+              "period": "monthly",
+              "group_by": "repair_type"
+            },
+            "data": {},
+            "file_path": null,
+            "status": "completed",
+            "generated_by": null,
+            "generated_at": null,
+            "expires_at": null,
+            "shop_id": "default",
+            "created_at": "2025-08-05T08:15:18.233932+00:00",
+            "updated_at": "2025-08-05T08:15:18.233932+00:00"
+          },
+          {
+            "id": 5,
+            "name": "Supplier Payment Report",
+            "type": "financial",
+            "description": "Supplier payment history and outstanding amounts",
+            "parameters": {
+              "include_outstanding": true
+            },
+            "data": {},
+            "file_path": null,
+            "status": "completed",
+            "generated_by": null,
+            "generated_at": null,
+            "expires_at": null,
+            "shop_id": "default",
+            "created_at": "2025-08-05T08:15:18.233932+00:00",
+            "updated_at": "2025-08-05T08:15:18.233932+00:00"
+          },
+          {
+            "id": 4,
+            "name": "Inventory Status Report",
+            "type": "inventory",
+            "description": "Current inventory levels and low stock alerts",
+            "parameters": {
+              "threshold": 10,
+              "include_low_stock": true
+            },
+            "data": {},
+            "file_path": null,
+            "status": "completed",
+            "generated_by": null,
+            "generated_at": null,
+            "expires_at": null,
+            "shop_id": "default",
+            "created_at": "2025-08-05T08:15:18.233932+00:00",
+            "updated_at": "2025-08-05T08:15:18.233932+00:00"
+          },
+          {
+            "id": 3,
+            "name": "Monthly Sales Report",
+            "type": "sales",
+            "description": "Monthly sales summary with trends",
+            "parameters": {
+              "period": "monthly",
+              "include_trends": true
+            },
+            "data": {},
+            "file_path": null,
+            "status": "completed",
+            "generated_by": null,
+            "generated_at": null,
+            "expires_at": null,
+            "shop_id": "default",
+            "created_at": "2025-08-05T08:15:18.233932+00:00",
+            "updated_at": "2025-08-05T08:15:18.233932+00:00"
+          },
+          {
+            "id": 2,
+            "name": "Weekly Sales Report",
+            "type": "sales",
+            "description": "Weekly sales summary",
+            "parameters": {
+              "period": "weekly",
+              "include_details": false
+            },
+            "data": {},
+            "file_path": null,
+            "status": "completed",
+            "generated_by": null,
+            "generated_at": null,
+            "expires_at": null,
+            "shop_id": "default",
+            "created_at": "2025-08-05T08:15:18.233932+00:00",
+            "updated_at": "2025-08-05T08:15:18.233932+00:00"
+          },
+          {
+            "id": 1,
+            "name": "Daily Sales Report",
+            "type": "sales",
+            "description": "Daily sales summary with transaction details",
+            "parameters": {
+              "period": "daily",
+              "include_details": true
+            },
+            "data": {},
+            "file_path": null,
+            "status": "completed",
+            "generated_by": null,
+            "generated_at": null,
+            "expires_at": null,
+            "shop_id": "default",
+            "created_at": "2025-08-05T08:15:18.233932+00:00",
+            "updated_at": "2025-08-05T08:15:18.233932+00:00"
+          }
+        ],
+        "endpoint": "/api/reports",
+        "description": "Get all reports",
+        "method": "GET"
+      }
+    ],
+    "statistics": [
+      {
+        "success": true,
+        "status": 200,
+        "data": {
+          "transactions": 1,
+          "revenue": 0,
+          "bills": 0,
+          "billsTotal": 0
+        },
+        "endpoint": "/api/stats/today",
+        "description": "Today's statistics",
+        "method": "GET"
+      },
+      {
+        "success": true,
+        "status": 200,
+        "data": {
+          "transactions": 1,
+          "revenue": 0
+        },
+        "endpoint": "/api/stats/week",
+        "description": "Weekly statistics",
+        "method": "GET"
+      },
+      {
+        "success": true,
+        "status": 200,
+        "data": {
+          "transactions": 1,
+          "revenue": 0
+        },
+        "endpoint": "/api/stats/month",
+        "description": "Monthly statistics",
+        "method": "GET"
+      },
+      {
+        "success": true,
+        "status": 200,
+        "data": {
+          "transactions": 1,
+          "revenue": 0
+        },
+        "endpoint": "/api/stats/year",
+        "description": "Yearly statistics",
+        "method": "GET"
+      },
+      {
+        "success": true,
+        "status": 200,
+        "data": {
+          "totals": {
+            "totalTransactions": 1,
+            "totalRevenue": 150,
+            "pendingTransactions": 1,
+            "totalBills": 0,
+            "unpaidBills": 0,
+            "lowStockItems": 0
+          },
+          "recentTransactions": [
+            {
+              "id": 1,
+              "customer_name": "John Doe",
+              "mobile_number": "1234567890",
+              "device_model": "iPhone 12",
+              "repair_type": "Screen Replacement",
+              "repair_cost": 150,
+              "actual_cost": null,
+              "profit": null,
+              "amount_given": 150,
+              "change_returned": 0,
+              "payment_method": "cash",
+              "external_store_name": null,
+              "external_item_name": null,
+              "external_item_cost": null,
+              "internal_cost": null,
+              "free_glass_installation": false,
+              "remarks": "Test transaction for fetching",
+              "status": "Pending",
+              "requires_inventory": false,
+              "supplier_name": null,
+              "parts_cost": 0,
+              "custom_supplier_name": null,
+              "external_purchases": null,
+              "shop_id": "default",
+              "created_at": "2025-08-05T13:19:49.202884+00:00"
+            }
+          ],
+          "topSuppliers": []
+        },
+        "endpoint": "/api/dashboard",
+        "description": "Dashboard data",
+        "method": "GET"
+      }
+    ],
+    "core_data": [
+      {
+        "success": true,
+        "status": 200,
+        "data": [
+          {
+            "id": 1,
+            "customer_name": "John Doe",
+            "mobile_number": "1234567890",
+            "device_model": "iPhone 12",
+            "repair_type": "Screen Replacement",
+            "repair_cost": 150,
+            "actual_cost": null,
+            "profit": null,
+            "amount_given": 150,
+            "change_returned": 0,
+            "payment_method": "cash",
+            "external_store_name": null,
+            "external_item_name": null,
+            "external_item_cost": null,
+            "internal_cost": null,
+            "free_glass_installation": false,
+            "remarks": "Test transaction for fetching",
+            "status": "Pending",
+            "requires_inventory": false,
+            "supplier_name": null,
+            "parts_cost": 0,
+            "custom_supplier_name": null,
+            "external_purchases": null,
+            "shop_id": "default",
+            "created_at": "2025-08-05T13:19:49.202884+00:00"
+          }
+        ],
+        "endpoint": "/api/transactions",
+        "description": "Get all transactions",
+        "method": "GET"
+      },
+      {
+        "success": true,
+        "status": 200,
+        "data": [],
+        "endpoint": "/api/bills",
+        "description": "Get all bills",
+        "method": "GET"
+      },
+      {
+        "success": true,
+        "status": 200,
+        "data": [],
+        "endpoint": "/api/inventory",
+        "description": "Get all inventory items",
+        "method": "GET"
+      }
+    ],
+    "business_intelligence": [
+      {
+        "success": true,
+        "status": 200,
+        "data": [],
+        "endpoint": "/api/activity-logs",
+        "description": "Get activity logs",
+        "method": "GET"
+      },
+      {
+        "success": true,
+        "status": 200,
+        "data": [],
+        "endpoint": "/api/expenditures",
+        "description": "Get expenditures",
+        "method": "GET"
+      },
+      {
+        "success": true,
+        "status": 200,
+        "data": [],
+        "endpoint": "/api/purchase-orders",
+        "description": "Get purchase orders",
+        "method": "GET"
+      },
+      {
+        "success": true,
+        "status": 200,
+        "data": [],
+        "endpoint": "/api/supplier-payments",
+        "description": "Get supplier payments",
+        "method": "GET"
+      },
+      {
+        "success": true,
+        "status": 200,
+        "data": [],
+        "endpoint": "/api/grouped-expenditures",
+        "description": "Get grouped expenditures",
+        "method": "GET"
+      }
+    ],
+    "system": [
+      {
+        "success": true,
+        "status": 200,
+        "data": {
+          "notifications": []
+        },
+        "endpoint": "/api/notifications",
+        "description": "Get all notifications",
+        "method": "GET"
+      },
+      {
+        "success": true,
+        "status": 200,
+        "data": {
+          "settings": [
+            {
+              "id": 1,
+              "user_id": null,
+              "setting_key": "app_name",
+              "setting_value": "Mobile Repair Tracker",
+              "setting_type": "system",
+              "description": "Application name",
+              "is_public": true,
+              "shop_id": "default",
+              "created_at": "2025-08-05T08:14:53.594613+00:00",
+              "updated_at": "2025-08-05T08:14:53.594613+00:00"
+            },
+            {
+              "id": 2,
+              "user_id": null,
+              "setting_key": "currency",
+              "setting_value": "USD",
+              "setting_type": "system",
+              "description": "Default currency",
+              "is_public": true,
+              "shop_id": "default",
+              "created_at": "2025-08-05T08:14:53.594613+00:00",
+              "updated_at": "2025-08-05T08:14:53.594613+00:00"
+            },
+            {
+              "id": 3,
+              "user_id": null,
+              "setting_key": "tax_rate",
+              "setting_value": 0.08,
+              "setting_type": "system",
+              "description": "Default tax rate",
+              "is_public": true,
+              "shop_id": "default",
+              "created_at": "2025-08-05T08:14:53.594613+00:00",
+              "updated_at": "2025-08-05T08:14:53.594613+00:00"
+            },
+            {
+              "id": 4,
+              "user_id": null,
+              "setting_key": "business_hours",
+              "setting_value": {
+                "open": "09:00",
+                "close": "18:00"
+              },
+              "setting_type": "system",
+              "description": "Business operating hours",
+              "is_public": true,
+              "shop_id": "default",
+              "created_at": "2025-08-05T08:14:53.594613+00:00",
+              "updated_at": "2025-08-05T08:14:53.594613+00:00"
+            },
+            {
+              "id": 5,
+              "user_id": null,
+              "setting_key": "contact_info",
+              "setting_value": {
+                "email": "",
+                "phone": "",
+                "address": ""
+              },
+              "setting_type": "system",
+              "description": "Business contact information",
+              "is_public": true,
+              "shop_id": "default",
+              "created_at": "2025-08-05T08:14:53.594613+00:00",
+              "updated_at": "2025-08-05T08:14:53.594613+00:00"
+            }
+          ]
+        },
+        "endpoint": "/api/settings",
+        "description": "Get application settings",
+        "method": "GET"
+      },
+      {
+        "success": false,
+        "status": 403,
+        "error": "Request failed with status code 403",
+        "endpoint": "/api/permissions",
+        "description": "Get user permissions",
+        "method": "GET"
+      }
+    ]
+  },
+  "detailed_results": [
+    {
+      "success": true,
+      "status": 200,
+      "data": [
+        {
+          "id": 1,
+          "name": "Default Supplier",
+          "contact_number": "1234567890",
+          "address": "Default Address",
+          "shop_id": "default",
+          "created_at": "2025-08-05T06:58:33.379864+00:00"
+        },
+        {
+          "id": 2,
+          "name": "Parts Supplier",
+          "contact_number": "0987654321",
+          "address": "Parts Address",
+          "shop_id": "default",
+          "created_at": "2025-08-05T06:58:33.379864+00:00"
+        }
+      ],
+      "endpoint": "/api/suppliers",
+      "description": "Get all suppliers",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": [
+        {
+          "id": 6,
+          "name": "Profit Analysis Report",
+          "type": "financial",
+          "description": "Profit analysis by repair type and time period",
+          "parameters": {
+            "period": "monthly",
+            "group_by": "repair_type"
+          },
+          "data": {},
+          "file_path": null,
+          "status": "completed",
+          "generated_by": null,
+          "generated_at": null,
+          "expires_at": null,
+          "shop_id": "default",
+          "created_at": "2025-08-05T08:15:18.233932+00:00",
+          "updated_at": "2025-08-05T08:15:18.233932+00:00"
+        },
+        {
+          "id": 5,
+          "name": "Supplier Payment Report",
+          "type": "financial",
+          "description": "Supplier payment history and outstanding amounts",
+          "parameters": {
+            "include_outstanding": true
+          },
+          "data": {},
+          "file_path": null,
+          "status": "completed",
+          "generated_by": null,
+          "generated_at": null,
+          "expires_at": null,
+          "shop_id": "default",
+          "created_at": "2025-08-05T08:15:18.233932+00:00",
+          "updated_at": "2025-08-05T08:15:18.233932+00:00"
+        },
+        {
+          "id": 4,
+          "name": "Inventory Status Report",
+          "type": "inventory",
+          "description": "Current inventory levels and low stock alerts",
+          "parameters": {
+            "threshold": 10,
+            "include_low_stock": true
+          },
+          "data": {},
+          "file_path": null,
+          "status": "completed",
+          "generated_by": null,
+          "generated_at": null,
+          "expires_at": null,
+          "shop_id": "default",
+          "created_at": "2025-08-05T08:15:18.233932+00:00",
+          "updated_at": "2025-08-05T08:15:18.233932+00:00"
+        },
+        {
+          "id": 3,
+          "name": "Monthly Sales Report",
+          "type": "sales",
+          "description": "Monthly sales summary with trends",
+          "parameters": {
+            "period": "monthly",
+            "include_trends": true
+          },
+          "data": {},
+          "file_path": null,
+          "status": "completed",
+          "generated_by": null,
+          "generated_at": null,
+          "expires_at": null,
+          "shop_id": "default",
+          "created_at": "2025-08-05T08:15:18.233932+00:00",
+          "updated_at": "2025-08-05T08:15:18.233932+00:00"
+        },
+        {
+          "id": 2,
+          "name": "Weekly Sales Report",
+          "type": "sales",
+          "description": "Weekly sales summary",
+          "parameters": {
+            "period": "weekly",
+            "include_details": false
+          },
+          "data": {},
+          "file_path": null,
+          "status": "completed",
+          "generated_by": null,
+          "generated_at": null,
+          "expires_at": null,
+          "shop_id": "default",
+          "created_at": "2025-08-05T08:15:18.233932+00:00",
+          "updated_at": "2025-08-05T08:15:18.233932+00:00"
+        },
+        {
+          "id": 1,
+          "name": "Daily Sales Report",
+          "type": "sales",
+          "description": "Daily sales summary with transaction details",
+          "parameters": {
+            "period": "daily",
+            "include_details": true
+          },
+          "data": {},
+          "file_path": null,
+          "status": "completed",
+          "generated_by": null,
+          "generated_at": null,
+          "expires_at": null,
+          "shop_id": "default",
+          "created_at": "2025-08-05T08:15:18.233932+00:00",
+          "updated_at": "2025-08-05T08:15:18.233932+00:00"
+        }
+      ],
+      "endpoint": "/api/reports",
+      "description": "Get all reports",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": {
+        "transactions": 1,
+        "revenue": 0,
+        "bills": 0,
+        "billsTotal": 0
+      },
+      "endpoint": "/api/stats/today",
+      "description": "Today's statistics",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": {
+        "transactions": 1,
+        "revenue": 0
+      },
+      "endpoint": "/api/stats/week",
+      "description": "Weekly statistics",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": {
+        "transactions": 1,
+        "revenue": 0
+      },
+      "endpoint": "/api/stats/month",
+      "description": "Monthly statistics",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": {
+        "transactions": 1,
+        "revenue": 0
+      },
+      "endpoint": "/api/stats/year",
+      "description": "Yearly statistics",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": {
+        "totals": {
+          "totalTransactions": 1,
+          "totalRevenue": 150,
+          "pendingTransactions": 1,
+          "totalBills": 0,
+          "unpaidBills": 0,
+          "lowStockItems": 0
+        },
+        "recentTransactions": [
+          {
+            "id": 1,
+            "customer_name": "John Doe",
+            "mobile_number": "1234567890",
+            "device_model": "iPhone 12",
+            "repair_type": "Screen Replacement",
+            "repair_cost": 150,
+            "actual_cost": null,
+            "profit": null,
+            "amount_given": 150,
+            "change_returned": 0,
+            "payment_method": "cash",
+            "external_store_name": null,
+            "external_item_name": null,
+            "external_item_cost": null,
+            "internal_cost": null,
+            "free_glass_installation": false,
+            "remarks": "Test transaction for fetching",
+            "status": "Pending",
+            "requires_inventory": false,
+            "supplier_name": null,
+            "parts_cost": 0,
+            "custom_supplier_name": null,
+            "external_purchases": null,
+            "shop_id": "default",
+            "created_at": "2025-08-05T13:19:49.202884+00:00"
+          }
+        ],
+        "topSuppliers": []
+      },
+      "endpoint": "/api/dashboard",
+      "description": "Dashboard data",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": [
+        {
+          "id": 1,
+          "customer_name": "John Doe",
+          "mobile_number": "1234567890",
+          "device_model": "iPhone 12",
+          "repair_type": "Screen Replacement",
+          "repair_cost": 150,
+          "actual_cost": null,
+          "profit": null,
+          "amount_given": 150,
+          "change_returned": 0,
+          "payment_method": "cash",
+          "external_store_name": null,
+          "external_item_name": null,
+          "external_item_cost": null,
+          "internal_cost": null,
+          "free_glass_installation": false,
+          "remarks": "Test transaction for fetching",
+          "status": "Pending",
+          "requires_inventory": false,
+          "supplier_name": null,
+          "parts_cost": 0,
+          "custom_supplier_name": null,
+          "external_purchases": null,
+          "shop_id": "default",
+          "created_at": "2025-08-05T13:19:49.202884+00:00"
+        }
+      ],
+      "endpoint": "/api/transactions",
+      "description": "Get all transactions",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": [],
+      "endpoint": "/api/bills",
+      "description": "Get all bills",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": [],
+      "endpoint": "/api/inventory",
+      "description": "Get all inventory items",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": {
+        "notifications": []
+      },
+      "endpoint": "/api/notifications",
+      "description": "Get all notifications",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": {
+        "settings": [
+          {
+            "id": 1,
+            "user_id": null,
+            "setting_key": "app_name",
+            "setting_value": "Mobile Repair Tracker",
+            "setting_type": "system",
+            "description": "Application name",
+            "is_public": true,
+            "shop_id": "default",
+            "created_at": "2025-08-05T08:14:53.594613+00:00",
+            "updated_at": "2025-08-05T08:14:53.594613+00:00"
+          },
+          {
+            "id": 2,
+            "user_id": null,
+            "setting_key": "currency",
+            "setting_value": "USD",
+            "setting_type": "system",
+            "description": "Default currency",
+            "is_public": true,
+            "shop_id": "default",
+            "created_at": "2025-08-05T08:14:53.594613+00:00",
+            "updated_at": "2025-08-05T08:14:53.594613+00:00"
+          },
+          {
+            "id": 3,
+            "user_id": null,
+            "setting_key": "tax_rate",
+            "setting_value": 0.08,
+            "setting_type": "system",
+            "description": "Default tax rate",
+            "is_public": true,
+            "shop_id": "default",
+            "created_at": "2025-08-05T08:14:53.594613+00:00",
+            "updated_at": "2025-08-05T08:14:53.594613+00:00"
+          },
+          {
+            "id": 4,
+            "user_id": null,
+            "setting_key": "business_hours",
+            "setting_value": {
+              "open": "09:00",
+              "close": "18:00"
+            },
+            "setting_type": "system",
+            "description": "Business operating hours",
+            "is_public": true,
+            "shop_id": "default",
+            "created_at": "2025-08-05T08:14:53.594613+00:00",
+            "updated_at": "2025-08-05T08:14:53.594613+00:00"
+          },
+          {
+            "id": 5,
+            "user_id": null,
+            "setting_key": "contact_info",
+            "setting_value": {
+              "email": "",
+              "phone": "",
+              "address": ""
+            },
+            "setting_type": "system",
+            "description": "Business contact information",
+            "is_public": true,
+            "shop_id": "default",
+            "created_at": "2025-08-05T08:14:53.594613+00:00",
+            "updated_at": "2025-08-05T08:14:53.594613+00:00"
+          }
+        ]
+      },
+      "endpoint": "/api/settings",
+      "description": "Get application settings",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": [],
+      "endpoint": "/api/activity-logs",
+      "description": "Get activity logs",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": [],
+      "endpoint": "/api/expenditures",
+      "description": "Get expenditures",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": [],
+      "endpoint": "/api/purchase-orders",
+      "description": "Get purchase orders",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": [],
+      "endpoint": "/api/supplier-payments",
+      "description": "Get supplier payments",
+      "method": "GET"
+    },
+    {
+      "success": true,
+      "status": 200,
+      "data": [],
+      "endpoint": "/api/grouped-expenditures",
+      "description": "Get grouped expenditures",
+      "method": "GET"
+    },
+    {
+      "success": false,
+      "status": 403,
+      "error": "Request failed with status code 403",
+      "endpoint": "/api/permissions",
+      "description": "Get user permissions",
+      "method": "GET"
+    }
+  ]
+}

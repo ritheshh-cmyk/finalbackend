@@ -1,0 +1,116 @@
+{
+  "timestamp": "2025-08-05T08:26:22.709Z",
+  "summary": {
+    "total": 13,
+    "passed": 0,
+    "failed": 13,
+    "successRate": "0.0%",
+    "authenticationWorking": false
+  },
+  "endpoints": [
+    {
+      "name": "Health Check",
+      "method": "GET",
+      "endpoint": "/health",
+      "status": 429,
+      "success": false,
+      "error": "Too many requests, please try again later."
+    },
+    {
+      "name": "Auth Register",
+      "method": "POST",
+      "endpoint": "/api/auth/register",
+      "status": 429,
+      "success": false,
+      "error": "Too many requests, please try again later."
+    },
+    {
+      "name": "Version",
+      "method": "GET",
+      "endpoint": "/api/version",
+      "status": 429,
+      "success": false,
+      "error": "Too many requests, please try again later."
+    },
+    {
+      "name": "Dashboard",
+      "method": "GET",
+      "endpoint": "/api/dashboard",
+      "status": 429,
+      "success": false,
+      "error": "Too many requests, please try again later."
+    },
+    {
+      "name": "Bills List",
+      "method": "GET",
+      "endpoint": "/api/bills",
+      "status": 429,
+      "success": false,
+      "error": "Too many requests, please try again later."
+    },
+    {
+      "name": "Transactions List",
+      "method": "GET",
+      "endpoint": "/api/transactions",
+      "status": 429,
+      "success": false,
+      "error": "Too many requests, please try again later."
+    },
+    {
+      "name": "Suppliers List",
+      "method": "GET",
+      "endpoint": "/api/suppliers",
+      "status": 429,
+      "success": false,
+      "error": "Too many requests, please try again later."
+    },
+    {
+      "name": "Inventory List",
+      "method": "GET",
+      "endpoint": "/api/inventory",
+      "status": 429,
+      "success": false,
+      "error": "Too many requests, please try again later."
+    },
+    {
+      "name": "Notifications",
+      "method": "GET",
+      "endpoint": "/api/notifications",
+      "status": 429,
+      "success": false,
+      "error": "Too many requests, please try again later."
+    },
+    {
+      "name": "Settings",
+      "method": "GET",
+      "endpoint": "/api/settings",
+      "status": 429,
+      "success": false,
+      "error": "Too many requests, please try again later."
+    },
+    {
+      "name": "Bills Create",
+      "method": "POST",
+      "endpoint": "/api/bills",
+      "status": 429,
+      "success": false,
+      "error": "Too many requests, please try again later."
+    },
+    {
+      "name": "Transaction Create",
+      "method": "POST",
+      "endpoint": "/api/transactions",
+      "status": 429,
+      "success": false,
+      "error": "Too many requests, please try again later."
+    },
+    {
+      "name": "Supplier Create",
+      "method": "POST",
+      "endpoint": "/api/suppliers",
+      "status": 429,
+      "success": false,
+      "error": "Too many requests, please try again later."
+    }
+  ]
+}
