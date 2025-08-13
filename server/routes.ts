@@ -1174,6 +1174,85 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
     });
   });
 
+  
+  // Repairs endpoints
+  app.get('/api/repairs', async (req, res) => {
+    try {
+      const result = await pool.query('SELECT * FROM repairs ORDER BY created_at DESC');
+      res.json(result.rows);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch repairs' });
+    }
+  });
+
+  app.post('/api/repairs', requireNotDemo, async (req, res) => {
+    try {
+      const { customer_name, mobile_number, device_model, issue_description, repair_type, repair_cost } = req.body;
+      const result = await pool.query(
+        'INSERT INTO repairs (customer_name, mobile_number, device_model, issue_description, repair_type, repair_cost) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [customer_name, mobile_number, device_model, issue_description, repair_type, repair_cost]
+      );
+      res.json(result.rows[0]);
+      io.emit('repairCreated', result.rows[0]);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to create repair' });
+    }
+  });
+
+  
+  // Customers endpoints  
+  app.get('/api/customers', async (req, res) => {
+    try {
+      const result = await pool.query('SELECT * FROM customers ORDER BY created_at DESC');
+      res.json(result.rows);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch customers' });
+    }
+  });
+
+  app.post('/api/customers', requireNotDemo, async (req, res) => {
+    try {
+      const { name, mobile_number, email, address } = req.body;
+      const result = await pool.query(
+        'INSERT INTO customers (name, mobile_number, email, address) VALUES ($1, $2, $3, $4) RETURNING *',
+        [name, mobile_number, email, address]
+      );
+      res.json(result.rows[0]);
+      io.emit('customerCreated', result.rows[0]);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to create customer' });
+    }
+  });
+
+  
+  // Analytics endpoints
+  app.get('/api/analytics', async (req, res) => {
+    try {
+      const dateRange = req.query.range || 'week';
+      let query = '';
+      const params = [];
+      
+      switch (dateRange) {
+        case 'today':
+          query = `SELECT * FROM analytics WHERE date = CURRENT_DATE`;
+          break;
+        case 'week':
+          query = `SELECT * FROM analytics WHERE date >= CURRENT_DATE - INTERVAL '7 days'`;
+          break;
+        case 'month':
+          query = `SELECT * FROM analytics WHERE date >= CURRENT_DATE - INTERVAL '30 days'`;
+          break;
+        default:
+          query = `SELECT * FROM analytics ORDER BY date DESC LIMIT 30`;
+      }
+      
+      const result = await pool.query(query, params);
+      res.json(result.rows);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch analytics' });
+    }
+  });
+
   // --- ALIASES FOR FRONTEND COMPATIBILITY (REVERSED) ---
 
   // 1. /api/sms/send forwards to /api/send-sms

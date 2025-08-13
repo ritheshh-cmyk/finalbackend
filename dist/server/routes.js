@@ -1116,6 +1116,71 @@ async function registerRoutes(app, io) {
             res.status(500).json({ success: false, error: 'Failed to send SMS' });
         });
     });
+    app.get('/api/repairs', async (req, res) => {
+        try {
+            const result = await db_1.pool.query('SELECT * FROM repairs ORDER BY created_at DESC');
+            res.json(result.rows);
+        }
+        catch (error) {
+            res.status(500).json({ error: 'Failed to fetch repairs' });
+        }
+    });
+    app.post('/api/repairs', supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
+        try {
+            const { customer_name, mobile_number, device_model, issue_description, repair_type, repair_cost } = req.body;
+            const result = await db_1.pool.query('INSERT INTO repairs (customer_name, mobile_number, device_model, issue_description, repair_type, repair_cost) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', [customer_name, mobile_number, device_model, issue_description, repair_type, repair_cost]);
+            res.json(result.rows[0]);
+            io.emit('repairCreated', result.rows[0]);
+        }
+        catch (error) {
+            res.status(500).json({ error: 'Failed to create repair' });
+        }
+    });
+    app.get('/api/customers', async (req, res) => {
+        try {
+            const result = await db_1.pool.query('SELECT * FROM customers ORDER BY created_at DESC');
+            res.json(result.rows);
+        }
+        catch (error) {
+            res.status(500).json({ error: 'Failed to fetch customers' });
+        }
+    });
+    app.post('/api/customers', supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
+        try {
+            const { name, mobile_number, email, address } = req.body;
+            const result = await db_1.pool.query('INSERT INTO customers (name, mobile_number, email, address) VALUES ($1, $2, $3, $4) RETURNING *', [name, mobile_number, email, address]);
+            res.json(result.rows[0]);
+            io.emit('customerCreated', result.rows[0]);
+        }
+        catch (error) {
+            res.status(500).json({ error: 'Failed to create customer' });
+        }
+    });
+    app.get('/api/analytics', async (req, res) => {
+        try {
+            const dateRange = req.query.range || 'week';
+            let query = '';
+            const params = [];
+            switch (dateRange) {
+                case 'today':
+                    query = `SELECT * FROM analytics WHERE date = CURRENT_DATE`;
+                    break;
+                case 'week':
+                    query = `SELECT * FROM analytics WHERE date >= CURRENT_DATE - INTERVAL '7 days'`;
+                    break;
+                case 'month':
+                    query = `SELECT * FROM analytics WHERE date >= CURRENT_DATE - INTERVAL '30 days'`;
+                    break;
+                default:
+                    query = `SELECT * FROM analytics ORDER BY date DESC LIMIT 30`;
+            }
+            const result = await db_1.pool.query(query, params);
+            res.json(result.rows);
+        }
+        catch (error) {
+            res.status(500).json({ error: 'Failed to fetch analytics' });
+        }
+    });
     app.post('/api/sms/send', (req, res) => {
         req.url = '/api/send-sms';
         app._router.handle(req, res);
