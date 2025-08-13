@@ -1,5 +1,5 @@
 import express from 'express';
-import SupabaseAuthService from './supabase-auth';
+import SupabaseAuthService, { supabase, supabaseAdmin } from './supabase-auth';
 import { requireAuth, requireRole, optionalAuth } from './supabase-auth-middleware';
 import logger from './logger';
 
@@ -209,7 +209,7 @@ router.post('/refresh', async (req, res) => {
     }
 
     // Refresh session with Supabase
-    const { data, error } = await SupabaseAuthService.supabase.auth.refreshSession({
+    const { data, error } = await supabase.auth.refreshSession({
       refresh_token
     });
 
@@ -346,7 +346,7 @@ router.post('/change-password', requireAuth, async (req, res) => {
     }
 
     // Update password with Supabase Admin
-    const { error } = await SupabaseAuthService.supabaseAdmin.auth.admin.updateUserById(
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(
       req.user.id,
       { password: new_password }
     );

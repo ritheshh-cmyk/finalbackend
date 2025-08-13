@@ -8,18 +8,19 @@ exports.startServer = startServer;
 require("dotenv/config");
 const logger_1 = __importDefault(require("./logger"));
 const database_1 = require("../lib/database");
-const storage_1 = require("./storage");
 process.env.NODE_ENV = 'production';
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const routes_1 = require("./routes");
-const storage_2 = require("./storage");
+const storage_1 = require("./storage");
 const helmet_1 = __importDefault(require("helmet"));
 const whatsapp_1 = require("./whatsapp");
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const swagger_jsdoc_1 = __importDefault(require("swagger-jsdoc"));
+const supabase_realtime_service_1 = __importDefault(require("./supabase-realtime-service"));
+const supabase_auth_routes_1 = __importDefault(require("./supabase-auth-routes"));
 const swaggerOptions = {
     definition: {
         openapi: '3.0.0',
@@ -147,7 +148,7 @@ app.post("/webhook", (req, res) => {
 });
 app.post('/api/bills', async (req, res) => {
     try {
-        const bill = await storage_2.storage.createBill(req.body);
+        const bill = await storage_1.storage.createBill(req.body);
         res.json(bill);
         io.emit('billCreated', bill);
         try {
@@ -168,25 +169,28 @@ app.post('/api/bills', async (req, res) => {
 async function startServer() {
     try {
         await (0, database_1.initializeDatabase)();
-        await (0, storage_1.ensureDefaultUser)('admin', 'lucky@777', 'admin');
+        logger_1.default.info('🔄 Using Supabase Auth - default users managed via database migration');
+        app.use('/api/auth', supabase_auth_routes_1.default);
         await (0, routes_1.registerRoutes)(app, io);
         app.use('/api', (req, res) => {
             res.status(404).json({ error: 'API endpoint not found' });
         });
-        io.on('connection', (socket) => {
-            logger_1.default.info('Client connected: ' + socket.id);
-            socket.on('disconnect', () => {
-                logger_1.default.info('Client disconnected: ' + socket.id);
-            });
-        });
-        if (!process.env.JWT_SECRET) {
-            throw new Error('JWT_SECRET environment variable is required!');
+        const realtimeService = new supabase_realtime_service_1.default(io);
+        global.realtimeService = realtimeService;
+        const requiredSupabaseEnvs = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
+        for (const envVar of requiredSupabaseEnvs) {
+            if (!process.env[envVar]) {
+                throw new Error(`${envVar} environment variable is required for Supabase Auth!`);
+            }
         }
+        logger_1.default.info('✅ Supabase Auth environment variables verified');
         const PORT = process.env.PORT || 10000;
         server.listen(PORT, () => {
-            logger_1.default.info(`✅ Server running on port ${PORT}`);
+            logger_1.default.info(`✅ Server running on port ${PORT} with Supabase Auth`);
             logger_1.default.info(`🌐 Health check: http://localhost:${PORT}/health`);
             logger_1.default.info(`📊 API endpoints available at: http://localhost:${PORT}/api`);
+            logger_1.default.info(`🔐 Supabase Auth endpoints: http://localhost:${PORT}/api/auth`);
+            logger_1.default.info(`🔌 WebSocket server ready with Supabase integration`);
         });
         return server;
     }

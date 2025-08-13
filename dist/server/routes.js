@@ -6,24 +6,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerRoutes = registerRoutes;
 const storage_1 = require("./storage");
 const db_1 = require("./db");
-const auth_routes_1 = __importDefault(require("./auth-routes"));
-const auth_routes_2 = require("./auth-routes");
+const supabase_auth_middleware_1 = require("./supabase-auth-middleware");
 const schema_1 = require("../shared/schema");
 const zod_1 = require("zod");
 const exceljs_1 = __importDefault(require("exceljs"));
 const axios_1 = __importDefault(require("axios"));
 async function registerRoutes(app, io) {
-    app.use("/api/auth", auth_routes_1.default);
     app.get('/health', async (req, res) => {
         try {
             const result = await db_1.pool.query('SELECT NOW() as current_time');
             res.json({
                 status: 'OK',
-                message: 'Mobile Repair Tracker Backend is running',
+                message: 'Mobile Repair Tracker Backend is running with Supabase Auth',
                 timestamp: new Date().toISOString(),
                 port: process.env.PORT || 10000,
                 database: 'connected',
-                dbTime: result.rows[0]?.current_time
+                dbTime: result.rows[0]?.current_time,
+                auth: 'supabase'
             });
         }
         catch (error) {
@@ -34,6 +33,7 @@ async function registerRoutes(app, io) {
                 timestamp: new Date().toISOString(),
                 port: process.env.PORT || 10000,
                 database: 'disconnected',
+                auth: 'supabase',
                 error: error.message
             });
         }
@@ -41,7 +41,7 @@ async function registerRoutes(app, io) {
     app.get('/api/version', (req, res) => {
         res.json({ version: '1.0.0', name: 'Mobile Repair Tracker Backend' });
     });
-    app.use(auth_routes_2.requireAuth);
+    app.use(supabase_auth_middleware_1.requireAuth);
     app.get('/api/notifications', async (req, res) => {
         try {
             const notifications = await storage_1.storage.getNotifications();
@@ -79,7 +79,7 @@ async function registerRoutes(app, io) {
             res.status(500).json({ error: 'Failed to fetch activity logs' });
         }
     });
-    app.get('/api/users', (0, auth_routes_2.requireRole)('admin', 'owner'), async (req, res) => {
+    app.get('/api/users', (0, supabase_auth_middleware_1.requireRole)('admin', 'owner'), async (req, res) => {
         try {
             const users = await storage_1.storage.getAllUsers();
             res.json({ users });
@@ -88,7 +88,7 @@ async function registerRoutes(app, io) {
             res.status(500).json({ error: 'Failed to fetch users' });
         }
     });
-    app.get('/api/permissions', (0, auth_routes_2.requireRole)('admin', 'owner'), async (req, res) => {
+    app.get('/api/permissions', (0, supabase_auth_middleware_1.requireRole)('admin', 'owner'), async (req, res) => {
         try {
             const permissions = await storage_1.storage.getAllPermissions();
             res.json({ permissions });
@@ -97,7 +97,7 @@ async function registerRoutes(app, io) {
             res.status(500).json({ error: 'Failed to fetch permissions' });
         }
     });
-    app.delete('/api/clear-all-data', (0, auth_routes_2.requireRole)('admin', 'owner'), async (req, res) => {
+    app.delete('/api/clear-all-data', (0, supabase_auth_middleware_1.requireRole)('admin', 'owner'), async (req, res) => {
         res.json({ success: true });
         io.emit('dataCleared', { success: true });
     });
@@ -180,7 +180,7 @@ async function registerRoutes(app, io) {
             res.status(500).json({ message: "Failed to fetch bills" });
         }
     });
-    app.post('/api/bills', auth_routes_2.requireNotDemo, async (req, res) => {
+    app.post('/api/bills', supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
             const bill = await storage_1.storage.createBill(req.body);
             res.json({ success: true, data: bill, message: 'Bill created successfully' });
@@ -191,7 +191,7 @@ async function registerRoutes(app, io) {
             io.emit('error', { type: 'bill', message: 'Failed to create bill', details: error?.message || error });
         }
     });
-    app.put('/api/bills/:id', auth_routes_2.requireNotDemo, async (req, res) => {
+    app.put('/api/bills/:id', supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const bill = await storage_1.storage.updateBill(id, req.body);
@@ -205,7 +205,7 @@ async function registerRoutes(app, io) {
             io.emit('error', { type: 'bill', message: 'Failed to update bill', details: error?.message || error });
         }
     });
-    app.delete('/api/bills/:id', auth_routes_2.requireNotDemo, async (req, res) => {
+    app.delete('/api/bills/:id', supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const success = await storage_1.storage.deleteBill(id);
@@ -240,7 +240,7 @@ async function registerRoutes(app, io) {
             res.status(500).json({ error: 'Failed to fetch today\'s statistics' });
         }
     });
-    app.post("/api/transactions", auth_routes_2.requireNotDemo, async (req, res) => {
+    app.post("/api/transactions", supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
             const validatedData = schema_1.insertTransactionSchema.parse(req.body);
             const transaction = await storage_1.storage.createTransaction(validatedData);
@@ -315,7 +315,7 @@ async function registerRoutes(app, io) {
             res.status(500).json({ message: "Failed to fetch transaction" });
         }
     });
-    app.put("/api/transactions/:id", auth_routes_2.requireNotDemo, async (req, res) => {
+    app.put("/api/transactions/:id", supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             if (isNaN(id))
@@ -338,7 +338,7 @@ async function registerRoutes(app, io) {
             io.emit('error', { type: 'transaction', message: 'Failed to update transaction', details: error?.message || error });
         }
     });
-    app.delete("/api/transactions/:id", auth_routes_2.requireNotDemo, async (req, res) => {
+    app.delete("/api/transactions/:id", supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             if (isNaN(id))
@@ -391,7 +391,7 @@ async function registerRoutes(app, io) {
             res.status(500).json({ message: "Failed to fetch year's stats" });
         }
     });
-    app.post("/api/inventory", auth_routes_2.requireNotDemo, (req, res) => {
+    app.post("/api/inventory", supabase_auth_middleware_1.requireNotDemo, (req, res) => {
         (async () => {
             try {
                 const validatedData = schema_1.insertInventoryItemSchema.parse(req.body);
@@ -432,7 +432,7 @@ async function registerRoutes(app, io) {
             res.status(500).json({ message: "Failed to fetch inventory items" });
         });
     });
-    app.post("/api/suppliers", auth_routes_2.requireNotDemo, (req, res) => {
+    app.post("/api/suppliers", supabase_auth_middleware_1.requireNotDemo, (req, res) => {
         (async () => {
             try {
                 const validatedData = schema_1.insertSupplierSchema.parse(req.body);
@@ -474,7 +474,7 @@ async function registerRoutes(app, io) {
             res.status(500).json({ message: "Failed to fetch suppliers" });
         });
     });
-    app.put("/api/suppliers/:id", auth_routes_2.requireNotDemo, (req, res) => {
+    app.put("/api/suppliers/:id", supabase_auth_middleware_1.requireNotDemo, (req, res) => {
         (async () => {
             try {
                 const id = parseInt(req.params.id);
@@ -497,7 +497,7 @@ async function registerRoutes(app, io) {
             res.status(500).json({ message: "Failed to update supplier" });
         });
     });
-    app.delete("/api/suppliers/:id", auth_routes_2.requireNotDemo, (req, res) => {
+    app.delete("/api/suppliers/:id", supabase_auth_middleware_1.requireNotDemo, (req, res) => {
         (async () => {
             try {
                 const id = parseInt(req.params.id);
@@ -568,7 +568,7 @@ async function registerRoutes(app, io) {
             res.status(500).json({ message: "Failed to fetch purchase orders" });
         });
     });
-    app.post("/api/expenditures", auth_routes_2.requireNotDemo, (req, res) => {
+    app.post("/api/expenditures", supabase_auth_middleware_1.requireNotDemo, (req, res) => {
         (async () => {
             try {
                 const validatedData = schema_1.insertExpenditureSchema.parse(req.body);
@@ -636,7 +636,7 @@ async function registerRoutes(app, io) {
             res.status(500).json({ message: "Failed to fetch expenditures" });
         });
     });
-    app.put("/api/expenditures/:id", auth_routes_2.requireNotDemo, (req, res) => {
+    app.put("/api/expenditures/:id", supabase_auth_middleware_1.requireNotDemo, (req, res) => {
         (async () => {
             try {
                 const id = parseInt(req.params.id);
@@ -661,7 +661,7 @@ async function registerRoutes(app, io) {
             io.emit('error', { type: 'expenditure', message: 'Failed to update expenditure', details: error?.message || error });
         });
     });
-    app.delete("/api/expenditures/:id", auth_routes_2.requireNotDemo, (req, res) => {
+    app.delete("/api/expenditures/:id", supabase_auth_middleware_1.requireNotDemo, (req, res) => {
         (async () => {
             try {
                 const id = parseInt(req.params.id);
@@ -1003,7 +1003,7 @@ async function registerRoutes(app, io) {
             io.emit('error', { type: 'groupedExpenditure', message: 'Failed to delete grouped expenditure', details: error?.message || error });
         });
     });
-    app.post("/api/grouped-expenditure-payments", auth_routes_2.requireNotDemo, (req, res) => {
+    app.post("/api/grouped-expenditure-payments", supabase_auth_middleware_1.requireNotDemo, (req, res) => {
         (async () => {
             try {
                 const validatedData = schema_1.insertGroupedExpenditurePaymentSchema.parse(req.body);
