@@ -1492,6 +1492,119 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
   // 4. Today's and yesterday's sales/profit - remove duplicates since they already exist above
   // The existing stats routes at lines 153-192 already handle these endpoints
 
+
+  // --- MISSING DASHBOARD ENDPOINTS ---
+  
+  // Dashboard totals endpoint
+  app.get('/api/dashboard/totals', async (req, res) => {
+    try {
+      const totals = await storage.getDashboardTotals();
+      res.json(totals);
+    } catch (error) {
+      console.error('Dashboard totals error:', error);
+      res.status(500).json({ error: 'Failed to fetch dashboard totals' });
+    }
+  });
+
+  // Dashboard weekly statistics
+  app.get('/api/dashboard/weekly-statistics', async (req, res) => {
+    try {
+      const weeklyStats = await storage.getWeeklyStatistics();
+      res.json(weeklyStats);
+    } catch (error) {
+      console.error('Weekly statistics error:', error);
+      res.status(500).json({ error: 'Failed to fetch weekly statistics' });
+    }
+  });
+
+  // Dashboard recent transactions
+  app.get('/api/dashboard/recent-transactions', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 5;
+      const transactions = await storage.getRecentTransactions(limit);
+      res.json(transactions);
+    } catch (error) {
+      console.error('Recent transactions error:', error);
+      res.status(500).json({ error: 'Failed to fetch recent transactions' });
+    }
+  });
+
+  // Dashboard top suppliers
+  app.get('/api/dashboard/top-suppliers', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 5;
+      const suppliers = await storage.getTopSuppliers(limit);
+      res.json(suppliers);
+    } catch (error) {
+      console.error('Top suppliers error:', error);
+      res.status(500).json({ error: 'Failed to fetch top suppliers' });
+    }
+  });
+
+  // --- MISSING USER SETTINGS ENDPOINT ---
+  
+  app.get('/api/user-settings', async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+      const settings = await storage.getUserSettings(userId);
+      res.json(settings);
+    } catch (error) {
+      console.error('User settings error:', error);
+      res.status(500).json({ error: 'Failed to fetch user settings' });
+    }
+  });
+
+  // --- MISSING SEARCH ENDPOINTS ---
+  
+  app.get('/api/search/transactions', async (req, res) => {
+    try {
+      const q = req.query.q as string || '';
+      const results = await storage.searchTransactions(q);
+      res.json(results);
+    } catch (error) {
+      console.error('Search transactions error:', error);
+      res.status(500).json({ error: 'Failed to search transactions' });
+    }
+  });
+
+  app.get('/api/search/suppliers', async (req, res) => {
+    try {
+      const q = req.query.q as string || '';
+      const results = await storage.searchSuppliers(q);
+      res.json(results);
+    } catch (error) {
+      console.error('Search suppliers error:', error);
+      res.status(500).json({ error: 'Failed to search suppliers' });
+    }
+  });
+
+  app.get('/api/search/inventory', async (req, res) => {
+    try {
+      const q = req.query.q as string || '';
+      const results = await storage.searchInventory(q);
+      res.json(results);
+    } catch (error) {
+      console.error('Search inventory error:', error);
+      res.status(500).json({ error: 'Failed to search inventory' });
+    }
+  });
+
+  // --- MISSING REPORTS ENDPOINTS ---
+  
+  app.get('/api/reports/date-range', async (req, res) => {
+    try {
+      const range = req.query.range as string;
+      const reports = await storage.getReportsByDateRange(range);
+      res.json(reports);
+    } catch (error) {
+      console.error('Date range reports error:', error);
+      res.status(500).json({ error: 'Failed to fetch date range reports' });
+    }
+  });
+
   // --- Health and Ping Endpoints ---
   app.get('/api/ping', (req, res) => {
     res.json({
