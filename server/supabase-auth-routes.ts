@@ -1,5 +1,5 @@
 import express from 'express';
-import SupabaseAuthService, { supabase, supabaseAdmin } from './supabase-auth';
+import { SupabaseAuthService, supabase, supabaseAdmin } from './supabase-auth-temp';
 import { requireAuth, requireRole, optionalAuth } from './supabase-auth-middleware';
 import logger from './logger';
 

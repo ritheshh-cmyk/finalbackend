@@ -1,43 +1,10 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const supabase_auth_1 = __importStar(require("./supabase-auth"));
+const supabase_auth_temp_1 = require("./supabase-auth-temp");
 const supabase_auth_middleware_1 = require("./supabase-auth-middleware");
 const logger_1 = __importDefault(require("./logger"));
 const router = express_1.default.Router();
@@ -66,7 +33,7 @@ router.post('/login', async (req, res) => {
                 code: 'MISSING_CREDENTIALS'
             });
         }
-        const result = await supabase_auth_1.default.signInWithUsername(username, password);
+        const result = await supabase_auth_temp_1.SupabaseAuthService.signInWithUsername(username, password);
         if (!result.user || !result.session || !result.profile) {
             logger_1.default.warn(`❌ Login failed: Invalid credentials`, {
                 username,
@@ -151,7 +118,7 @@ router.post('/register', supabase_auth_middleware_1.requireAuth, (0, supabase_au
             });
         }
         logger_1.default.info(`👤 Admin ${req.user?.username} creating new user: ${username} (${email}) with role: ${role}`);
-        const result = await supabase_auth_1.default.signUp(email, password, {
+        const result = await supabase_auth_temp_1.SupabaseAuthService.signUp(email, password, {
             username,
             role,
             shop_id: shop_id || null
@@ -207,7 +174,7 @@ router.post('/refresh', async (req, res) => {
         if (!refresh_token) {
             return res.status(400).json({ error: 'Refresh token is required' });
         }
-        const { data, error } = await supabase_auth_1.supabase.auth.refreshSession({
+        const { data, error } = await supabase_auth_temp_1.supabase.auth.refreshSession({
             refresh_token
         });
         if (error || !data.session) {
@@ -217,7 +184,7 @@ router.post('/refresh', async (req, res) => {
                 code: 'INVALID_REFRESH_TOKEN'
             });
         }
-        const profile = await supabase_auth_1.default.getUserProfile(data.user.id);
+        const profile = await supabase_auth_temp_1.SupabaseAuthService.getUserProfile(data.user.id);
         if (!profile) {
             return res.status(404).json({
                 error: 'User profile not found',
@@ -257,7 +224,7 @@ router.post('/logout', supabase_auth_middleware_1.optionalAuth, async (req, res)
         const authHeader = req.headers.authorization;
         const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : undefined;
         if (token) {
-            await supabase_auth_1.default.signOut(token);
+            await supabase_auth_temp_1.SupabaseAuthService.signOut(token);
             logger_1.default.info(`✅ User logged out: ${req.user?.username || 'Unknown'}`);
         }
         res.json({ message: 'Logged out successfully' });
@@ -308,7 +275,7 @@ router.post('/change-password', supabase_auth_middleware_1.requireAuth, async (r
             return res.status(400).json({ error: 'User email not found' });
         }
         try {
-            await supabase_auth_1.default.signIn(req.user.email, current_password);
+            await supabase_auth_temp_1.SupabaseAuthService.signIn(req.user.email, current_password);
         }
         catch (error) {
             return res.status(401).json({
@@ -316,7 +283,7 @@ router.post('/change-password', supabase_auth_middleware_1.requireAuth, async (r
                 code: 'INVALID_CURRENT_PASSWORD'
             });
         }
-        const { error } = await supabase_auth_1.supabaseAdmin.auth.admin.updateUserById(req.user.id, { password: new_password });
+        const { error } = await supabase_auth_temp_1.supabaseAdmin.auth.admin.updateUserById(req.user.id, { password: new_password });
         if (error) {
             logger_1.default.error(`❌ Password change failed for user ${req.user.username}:`, error);
             return res.status(500).json({

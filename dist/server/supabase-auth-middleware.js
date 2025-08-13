@@ -7,7 +7,7 @@ exports.requireAuth = requireAuth;
 exports.requireRole = requireRole;
 exports.requireNotDemo = requireNotDemo;
 exports.optionalAuth = optionalAuth;
-const supabase_auth_1 = __importDefault(require("./supabase-auth"));
+const supabase_auth_temp_1 = require("./supabase-auth-temp");
 const logger_1 = __importDefault(require("./logger"));
 function requireAuth(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -15,7 +15,7 @@ function requireAuth(req, res, next) {
         return res.status(401).json({ error: 'No token provided' });
     }
     const token = authHeader.split(' ')[1];
-    supabase_auth_1.default.verifyToken(token)
+    supabase_auth_temp_1.SupabaseAuthService.verifyToken(token)
         .then((result) => {
         if (!result || !result.user || !result.profile) {
             logger_1.default.warn(`❌ Invalid token provided`);
@@ -71,7 +71,7 @@ function optionalAuth(req, res, next) {
         return next();
     }
     const token = authHeader.split(' ')[1];
-    supabase_auth_1.default.verifyToken(token)
+    supabase_auth_temp_1.SupabaseAuthService.verifyToken(token)
         .then((result) => {
         if (result && result.user && result.profile) {
             req.user = {

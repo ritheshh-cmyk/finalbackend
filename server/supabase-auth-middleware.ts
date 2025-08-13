@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import SupabaseAuthService from './supabase-auth';
+import { SupabaseAuthService } from './supabase-auth-temp';
 import logger from './logger';
 
 // Extend Request interface to include user data
