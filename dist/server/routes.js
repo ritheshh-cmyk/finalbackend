@@ -90,6 +90,42 @@ async function registerRoutes(app, io) {
             res.status(500).json({ error: 'Failed to fetch users' });
         }
     });
+    app.post('/api/users', (0, supabase_auth_middleware_1.requireRole)('admin', 'owner'), async (req, res) => {
+        try {
+            const { email, role = 'user', username, password } = req.body;
+            if (!email || !username) {
+                return res.status(400).json({ error: 'Email and username are required' });
+            }
+            if (password) {
+                const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+                    email,
+                    password,
+                    email_confirm: true,
+                    user_metadata: { username, role }
+                });
+                if (authError) {
+                    return res.status(400).json({ error: authError.message });
+                }
+                return res.json({ success: true, user: authUser.user });
+            }
+            else {
+                const { data: user, error } = await supabase
+                    .from('users')
+                    .insert([{ email, username, role, created_at: new Date().toISOString() }])
+                    .select()
+                    .single();
+                if (error) {
+                    return res.status(400).json({ error: error.message });
+                }
+                res.json({ success: true, user });
+                io.emit('userCreated', user);
+            }
+        }
+        catch (error) {
+            console.error('Create user error:', error);
+            res.status(500).json({ error: 'Failed to create user' });
+        }
+    });
     app.get('/api/permissions', (0, supabase_auth_middleware_1.requireRole)('admin', 'owner'), async (req, res) => {
         try {
             const permissions = await storage_1.storage.getAllPermissions();
@@ -114,6 +150,39 @@ async function registerRoutes(app, io) {
             res.status(500).json({ error: 'Failed to fetch dashboard data' });
         }
     });
+    app.get('/api/dashboard/stats', async (req, res) => {
+        try {
+            const totals = await storage_1.storage.getDashboardTotals();
+            const todayStats = await storage_1.storage.getTodayStats();
+            const weekStats = await storage_1.storage.getWeekStats();
+            res.json({ totals, today: todayStats, week: weekStats });
+        }
+        catch (error) {
+            console.error('Dashboard stats error:', error);
+            res.status(500).json({ error: 'Failed to fetch dashboard stats' });
+        }
+    });
+    app.get('/api/dashboard/totals', async (req, res) => {
+        try {
+            const totals = await storage_1.storage.getDashboardTotals();
+            res.json(totals);
+        }
+        catch (error) {
+            console.error('Dashboard totals error:', error);
+            res.status(500).json({ error: 'Failed to fetch dashboard totals' });
+        }
+    });
+    app.get('/api/dashboard/recent-transactions', async (req, res) => {
+        try {
+            const limit = parseInt(req.query.limit) || 5;
+            const recentTransactions = await storage_1.storage.getRecentTransactions(limit);
+            res.json(recentTransactions);
+        }
+        catch (error) {
+            console.error('Recent transactions error:', error);
+            res.status(500).json({ error: 'Failed to fetch recent transactions' });
+        }
+    });
     app.get('/api/reports', async (req, res) => {
         try {
             const dateRange = req.query.dateRange;
@@ -129,6 +198,83 @@ async function registerRoutes(app, io) {
         }
         catch (error) {
             res.status(500).json({ error: 'Failed to fetch reports' });
+        }
+    });
+    app.get('/api/reports/transactions/today', async (req, res) => {
+        try {
+            const { data: transactions, error } = await supabase
+                .from('transactions')
+                .select('*')
+                .gte('created_at', new Date().toDateString())
+                .order('created_at', { ascending: false });
+            if (error) {
+                console.error('Today transactions report error:', error);
+                return res.status(500).json({ error: 'Failed to fetch today transactions report' });
+            }
+            res.json(transactions || []);
+        }
+        catch (error) {
+            console.error('Today transactions report route error:', error);
+            res.status(500).json({ error: 'Failed to fetch today transactions report' });
+        }
+    });
+    app.get('/api/reports/transactions/week', async (req, res) => {
+        try {
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            const { data: transactions, error } = await supabase
+                .from('transactions')
+                .select('*')
+                .gte('created_at', weekAgo.toISOString())
+                .order('created_at', { ascending: false });
+            if (error) {
+                console.error('Week transactions report error:', error);
+                return res.status(500).json({ error: 'Failed to fetch week transactions report' });
+            }
+            res.json(transactions || []);
+        }
+        catch (error) {
+            console.error('Week transactions report route error:', error);
+            res.status(500).json({ error: 'Failed to fetch week transactions report' });
+        }
+    });
+    app.get('/api/reports/transactions/month', async (req, res) => {
+        try {
+            const monthAgo = new Date();
+            monthAgo.setDate(monthAgo.getDate() - 30);
+            const { data: transactions, error } = await supabase
+                .from('transactions')
+                .select('*')
+                .gte('created_at', monthAgo.toISOString())
+                .order('created_at', { ascending: false });
+            if (error) {
+                console.error('Month transactions report error:', error);
+                return res.status(500).json({ error: 'Failed to fetch month transactions report' });
+            }
+            res.json(transactions || []);
+        }
+        catch (error) {
+            console.error('Month transactions report route error:', error);
+            res.status(500).json({ error: 'Failed to fetch month transactions report' });
+        }
+    });
+    app.get('/api/activity', async (req, res) => {
+        try {
+            const limit = parseInt(req.query.limit) || 50;
+            const { data: activities, error } = await supabase
+                .from('activity_log')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(limit);
+            if (error) {
+                console.error('Activity log error:', error);
+                return res.status(500).json({ error: 'Failed to fetch activity log' });
+            }
+            res.json(activities || []);
+        }
+        catch (error) {
+            console.error('Activity route error:', error);
+            res.status(500).json({ error: 'Failed to fetch activity log' });
         }
     });
     app.get('/api/bills', async (req, res) => {
@@ -378,6 +524,64 @@ async function registerRoutes(app, io) {
         }
         catch (error) {
             res.status(500).json({ message: "Failed to fetch year's stats" });
+        }
+    });
+    app.get("/api/transactions/stats/today", async (req, res) => {
+        try {
+            const stats = await storage_1.storage.getTodayStats();
+            res.json(stats);
+        }
+        catch (error) {
+            res.status(500).json({ message: "Failed to fetch today's stats" });
+        }
+    });
+    app.get("/api/transactions/stats/week", async (req, res) => {
+        try {
+            const stats = await storage_1.storage.getWeekStats();
+            res.json(stats);
+        }
+        catch (error) {
+            res.status(500).json({ message: "Failed to fetch week's stats" });
+        }
+    });
+    app.get("/api/transactions/stats/month", async (req, res) => {
+        try {
+            const stats = await storage_1.storage.getMonthStats();
+            res.json(stats);
+        }
+        catch (error) {
+            res.status(500).json({ message: "Failed to fetch month's stats" });
+        }
+    });
+    app.get("/api/transactions/stats/year", async (req, res) => {
+        try {
+            const stats = await storage_1.storage.getYearStats();
+            res.json(stats);
+        }
+        catch (error) {
+            res.status(500).json({ message: "Failed to fetch year's stats" });
+        }
+    });
+    app.get("/api/transactions/search", async (req, res) => {
+        try {
+            const q = req.query.q;
+            if (!q) {
+                return res.status(400).json({ message: "Search query parameter 'q' is required" });
+            }
+            const { data: transactions, error } = await supabase
+                .from('transactions')
+                .select('*')
+                .or(`description.ilike.%${q}%,amount.eq.${parseFloat(q) || 0}`)
+                .order('created_at', { ascending: false });
+            if (error) {
+                console.error('Transaction search error:', error);
+                return res.status(500).json({ message: "Failed to search transactions" });
+            }
+            res.json(transactions || []);
+        }
+        catch (error) {
+            console.error('Transaction search route error:', error);
+            res.status(500).json({ message: "Failed to search transactions" });
         }
     });
     app.post("/api/inventory", supabase_auth_middleware_1.requireNotDemo, (req, res) => {
