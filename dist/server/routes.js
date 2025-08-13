@@ -7,10 +7,12 @@ exports.registerRoutes = registerRoutes;
 const storage_1 = require("./storage");
 const db_1 = require("./db");
 const supabase_auth_middleware_1 = require("./supabase-auth-middleware");
+const supabase_js_1 = require("@supabase/supabase-js");
 const schema_1 = require("../shared/schema");
 const zod_1 = require("zod");
 const exceljs_1 = __importDefault(require("exceljs"));
 const axios_1 = __importDefault(require("axios"));
+const supabase = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL || '', process.env.SUPABASE_SERVICE_ROLE_KEY || '');
 async function registerRoutes(app, io) {
     app.get('/health', async (req, res) => {
         try {
@@ -264,9 +266,9 @@ async function registerRoutes(app, io) {
             const offset = parseInt(req.query.offset) || 0;
             const search = req.query.search;
             const dateRange = req.query.dateRange;
-            let transactions;
+            let query = supabase.from('transactions').select('*');
             if (search) {
-                transactions = await storage_1.storage.searchTransactions(search);
+                query = query.or(`customer_name.ilike.%${search}%, mobile_number.ilike.%${search}%, device_model.ilike.%${search}%, repair_type.ilike.%${search}%`);
             }
             else if (dateRange) {
                 const today = new Date();
@@ -289,14 +291,19 @@ async function registerRoutes(app, io) {
                     default:
                         startDate = new Date(0);
                 }
-                transactions = await storage_1.storage.getTransactionsByDateRange(startDate, endDate);
+                query = query.gte('created_at', startDate.toISOString()).lte('created_at', endDate.toISOString());
             }
-            else {
-                transactions = await storage_1.storage.getTransactions(limit, offset);
+            const { data: transactions, error } = await query
+                .range(offset, offset + limit - 1)
+                .order('created_at', { ascending: false });
+            if (error) {
+                console.error('Transactions fetch error:', error);
+                return res.status(500).json({ message: "Failed to fetch transactions" });
             }
-            res.json(transactions);
+            res.json(transactions || []);
         }
         catch (error) {
+            console.error('Transactions route error:', error);
             res.status(500).json({ message: "Failed to fetch transactions" });
         }
     });
@@ -416,19 +423,25 @@ async function registerRoutes(app, io) {
                 const limit = parseInt(req.query.limit) || 50;
                 const offset = parseInt(req.query.offset) || 0;
                 const search = req.query.search;
-                let items;
+                let query = supabase.from('inventory').select('*');
                 if (search) {
-                    items = await storage_1.storage.searchInventoryItems(search);
+                    query = query.or(`name.ilike.%${search}%, category.ilike.%${search}%, brand.ilike.%${search}%`);
                 }
-                else {
-                    items = await storage_1.storage.getInventoryItems(limit, offset);
+                const { data: items, error } = await query
+                    .range(offset, offset + limit - 1)
+                    .order('created_at', { ascending: false });
+                if (error) {
+                    console.error('Inventory fetch error:', error);
+                    return res.status(500).json({ message: "Failed to fetch inventory items" });
                 }
-                res.json(items);
+                res.json(items || []);
             }
             catch (error) {
+                console.error('Inventory route error:', error);
                 res.status(500).json({ message: "Failed to fetch inventory items" });
             }
         })().catch(error => {
+            console.error('Inventory route exception:', error);
             res.status(500).json({ message: "Failed to fetch inventory items" });
         });
     });
@@ -458,19 +471,25 @@ async function registerRoutes(app, io) {
                 const limit = parseInt(req.query.limit) || 50;
                 const offset = parseInt(req.query.offset) || 0;
                 const search = req.query.search;
-                let suppliers;
+                let query = supabase.from('suppliers').select('*');
                 if (search) {
-                    suppliers = await storage_1.storage.searchSuppliers(search);
+                    query = query.or(`name.ilike.%${search}%, contact_number.ilike.%${search}%`);
                 }
-                else {
-                    suppliers = await storage_1.storage.getSuppliers(limit, offset);
+                const { data: suppliers, error } = await query
+                    .range(offset, offset + limit - 1)
+                    .order('created_at', { ascending: false });
+                if (error) {
+                    console.error('Suppliers fetch error:', error);
+                    return res.status(500).json({ message: "Failed to fetch suppliers" });
                 }
-                res.json(suppliers);
+                res.json(suppliers || []);
             }
             catch (error) {
+                console.error('Suppliers route error:', error);
                 res.status(500).json({ message: "Failed to fetch suppliers" });
             }
         })().catch(error => {
+            console.error('Suppliers route exception:', error);
             res.status(500).json({ message: "Failed to fetch suppliers" });
         });
     });
@@ -1118,39 +1137,85 @@ async function registerRoutes(app, io) {
     });
     app.get('/api/repairs', async (req, res) => {
         try {
-            const result = await db_1.pool.query('SELECT * FROM repairs ORDER BY created_at DESC');
-            res.json(result.rows);
+            const { data, error } = await supabase
+                .from('repairs')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error)
+                throw error;
+            res.json(data || []);
         }
         catch (error) {
+            console.error('Repairs fetch error:', error);
             res.status(500).json({ error: 'Failed to fetch repairs' });
         }
     });
     app.post('/api/repairs', supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
             const { customer_name, mobile_number, device_model, issue_description, repair_type, repair_cost } = req.body;
-            const result = await db_1.pool.query('INSERT INTO repairs (customer_name, mobile_number, device_model, issue_description, repair_type, repair_cost) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *', [customer_name, mobile_number, device_model, issue_description, repair_type, repair_cost]);
-            res.json(result.rows[0]);
-            io.emit('repairCreated', result.rows[0]);
+            let customer_id = null;
+            if (mobile_number) {
+                const { data: customer } = await supabase
+                    .from('customers')
+                    .select('id')
+                    .eq('phone', mobile_number)
+                    .single();
+                customer_id = customer?.id || null;
+            }
+            const { data, error } = await supabase
+                .from('repairs')
+                .insert({
+                customer_id,
+                device_type: device_model || 'Unknown Device',
+                model: repair_type || 'General Repair',
+                issue_description,
+                estimated_cost: repair_cost,
+                status: 'pending'
+            })
+                .select()
+                .single();
+            if (error)
+                throw error;
+            res.json(data);
+            io.emit('repairCreated', data);
         }
         catch (error) {
+            console.error('Repair creation error:', error);
             res.status(500).json({ error: 'Failed to create repair' });
         }
     });
     app.get('/api/customers', async (req, res) => {
         try {
-            const result = await db_1.pool.query('SELECT * FROM customers ORDER BY created_at DESC');
-            res.json(result.rows);
+            const { data, error } = await supabase
+                .from('customers')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error)
+                throw error;
+            res.json(data || []);
         }
         catch (error) {
+            console.error('Customers fetch error:', error);
             res.status(500).json({ error: 'Failed to fetch customers' });
         }
     });
     app.post('/api/customers', supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
             const { name, mobile_number, email, address } = req.body;
-            const result = await db_1.pool.query('INSERT INTO customers (name, mobile_number, email, address) VALUES ($1, $2, $3, $4) RETURNING *', [name, mobile_number, email, address]);
-            res.json(result.rows[0]);
-            io.emit('customerCreated', result.rows[0]);
+            const { data, error } = await supabase
+                .from('customers')
+                .insert({
+                name,
+                phone: mobile_number,
+                email,
+                address
+            })
+                .select()
+                .single();
+            if (error)
+                throw error;
+            res.json(data);
+            io.emit('customerCreated', data);
         }
         catch (error) {
             res.status(500).json({ error: 'Failed to create customer' });
@@ -1158,26 +1223,29 @@ async function registerRoutes(app, io) {
     });
     app.get('/api/analytics', async (req, res) => {
         try {
-            const dateRange = req.query.range || 'week';
-            let query = '';
-            const params = [];
-            switch (dateRange) {
-                case 'today':
-                    query = `SELECT * FROM analytics WHERE date = CURRENT_DATE`;
-                    break;
-                case 'week':
-                    query = `SELECT * FROM analytics WHERE date >= CURRENT_DATE - INTERVAL '7 days'`;
-                    break;
-                case 'month':
-                    query = `SELECT * FROM analytics WHERE date >= CURRENT_DATE - INTERVAL '30 days'`;
-                    break;
-                default:
-                    query = `SELECT * FROM analytics ORDER BY date DESC LIMIT 30`;
-            }
-            const result = await db_1.pool.query(query, params);
-            res.json(result.rows);
+            const { data: transactions, error: txError } = await supabase
+                .from('transactions')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(10);
+            const { data: repairs, error: repairError } = await supabase
+                .from('repairs')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(10);
+            const analytics = {
+                transactions: transactions || [],
+                repairs: repairs || [],
+                summary: {
+                    total_transactions: transactions?.length || 0,
+                    total_repairs: repairs?.length || 0,
+                    date: new Date().toISOString()
+                }
+            };
+            res.json(analytics);
         }
         catch (error) {
+            console.error('Analytics fetch error:', error);
             res.status(500).json({ error: 'Failed to fetch analytics' });
         }
     });
