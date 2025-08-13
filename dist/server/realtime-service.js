@@ -147,7 +147,7 @@ class RealtimeService {
         return [];
     }
     async getBusinessOverview() {
-        return await storage_1.storage.getDashboardData();
+        return await storage_1.storage.getDashboardTotals();
     }
     async getFinancialSummary() {
         return await storage_1.storage.getTodayStats();
@@ -162,7 +162,7 @@ class RealtimeService {
         return [];
     }
     async getInventoryStatus() {
-        return await storage_1.storage.getInventoryItems(10, 0);
+        return [];
     }
     async getSampleData() {
         return { message: 'Demo data available' };

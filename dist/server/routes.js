@@ -1390,6 +1390,106 @@ async function registerRoutes(app, io) {
             res.status(500).json({ error: 'Failed to fetch feedback' });
         });
     });
+    app.get('/api/dashboard/totals', async (req, res) => {
+        try {
+            const totals = await storage_1.storage.getDashboardTotals();
+            res.json(totals);
+        }
+        catch (error) {
+            console.error('Dashboard totals error:', error);
+            res.status(500).json({ error: 'Failed to fetch dashboard totals' });
+        }
+    });
+    app.get('/api/dashboard/weekly-statistics', async (req, res) => {
+        try {
+            const weeklyStats = await storage_1.storage.getWeeklyStatistics();
+            res.json(weeklyStats);
+        }
+        catch (error) {
+            console.error('Weekly statistics error:', error);
+            res.status(500).json({ error: 'Failed to fetch weekly statistics' });
+        }
+    });
+    app.get('/api/dashboard/recent-transactions', async (req, res) => {
+        try {
+            const limit = parseInt(req.query.limit) || 5;
+            const transactions = await storage_1.storage.getRecentTransactions(limit);
+            res.json(transactions);
+        }
+        catch (error) {
+            console.error('Recent transactions error:', error);
+            res.status(500).json({ error: 'Failed to fetch recent transactions' });
+        }
+    });
+    app.get('/api/dashboard/top-suppliers', async (req, res) => {
+        try {
+            const limit = parseInt(req.query.limit) || 5;
+            const suppliers = await storage_1.storage.getTopSuppliers(limit);
+            res.json(suppliers);
+        }
+        catch (error) {
+            console.error('Top suppliers error:', error);
+            res.status(500).json({ error: 'Failed to fetch top suppliers' });
+        }
+    });
+    app.get('/api/user-settings', async (req, res) => {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                return res.status(401).json({ error: 'User not authenticated' });
+            }
+            const settings = await storage_1.storage.getUserSettings(userId);
+            res.json(settings);
+        }
+        catch (error) {
+            console.error('User settings error:', error);
+            res.status(500).json({ error: 'Failed to fetch user settings' });
+        }
+    });
+    app.get('/api/search/transactions', async (req, res) => {
+        try {
+            const q = req.query.q || '';
+            const results = await storage_1.storage.searchTransactions(q);
+            res.json(results);
+        }
+        catch (error) {
+            console.error('Search transactions error:', error);
+            res.status(500).json({ error: 'Failed to search transactions' });
+        }
+    });
+    app.get('/api/search/suppliers', async (req, res) => {
+        try {
+            const q = req.query.q || '';
+            const results = await storage_1.storage.searchSuppliers(q);
+            res.json(results);
+        }
+        catch (error) {
+            console.error('Search suppliers error:', error);
+            res.status(500).json({ error: 'Failed to search suppliers' });
+        }
+    });
+    app.get('/api/search/inventory', async (req, res) => {
+        try {
+            const q = req.query.q || '';
+            const results = await storage_1.storage.searchInventory(q);
+            res.json(results);
+        }
+        catch (error) {
+            console.error('Search inventory error:', error);
+            res.status(500).json({ error: 'Failed to search inventory' });
+        }
+    });
+    app.get('/api/reports/date-range', async (req, res) => {
+        try {
+            const range = req.query.range;
+            const reports = await storage_1.storage.getReportsByDateRange(range);
+            res.json(reports);
+        }
+        catch (error) {
+            console.error('Date range reports error:', error);
+            res.status(500).json({ error: 'Failed to fetch date range reports' });
+        }
+    });
     app.get('/api/ping', (req, res) => {
         res.json({
             status: 'ok',

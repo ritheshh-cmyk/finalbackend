@@ -1835,16 +1835,16 @@ export declare const insertSupplierPaymentSchema: z.ZodObject<{
     description: z.ZodOptional<z.ZodString>;
     shop_id: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
+    amount?: number;
     shop_id?: string;
     paymentMethod?: string;
     supplierId?: number;
-    amount?: number;
     description?: string;
 }, {
+    amount?: number;
     shop_id?: string;
     paymentMethod?: string;
     supplierId?: number;
-    amount?: number;
     description?: string;
 }>;
 export declare const insertExpenditureSchema: z.ZodObject<{
@@ -1858,9 +1858,9 @@ export declare const insertExpenditureSchema: z.ZodObject<{
     remainingAmount: z.ZodOptional<z.ZodNumber>;
     shop_id: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
+    amount?: number;
     shop_id?: string;
     paymentMethod?: string;
-    amount?: number;
     description?: string;
     category?: string;
     recipient?: string;
@@ -1868,9 +1868,9 @@ export declare const insertExpenditureSchema: z.ZodObject<{
     paidAmount?: number;
     remainingAmount?: number;
 }, {
+    amount?: number;
     shop_id?: string;
     paymentMethod?: string;
-    amount?: number;
     description?: string;
     category?: string;
     recipient?: string;
@@ -1913,15 +1913,15 @@ export declare const insertGroupedExpenditurePaymentSchema: z.ZodObject<{
     description: z.ZodOptional<z.ZodString>;
     shop_id: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
+    amount?: number;
     shop_id?: string;
     paymentMethod?: string;
-    amount?: number;
     description?: string;
     groupedExpenditureId?: number;
 }, {
+    amount?: number;
     shop_id?: string;
     paymentMethod?: string;
-    amount?: number;
     description?: string;
     groupedExpenditureId?: number;
 }>;
@@ -2000,8 +2000,8 @@ export declare const insertNotificationSchema: z.ZodObject<{
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
     shopId: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    message?: string;
     type?: string;
+    message?: string;
     shopId?: string;
     title?: string;
     userId?: number;
@@ -2009,8 +2009,8 @@ export declare const insertNotificationSchema: z.ZodObject<{
     actionUrl?: string;
     metadata?: Record<string, any>;
 }, {
-    message?: string;
     type?: string;
+    message?: string;
     shopId?: string;
     title?: string;
     userId?: number;
@@ -2104,16 +2104,16 @@ export declare const insertReportSchema: z.ZodObject<{
     generatedBy: z.ZodOptional<z.ZodNumber>;
     shopId: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
+    type?: string;
     name?: string;
     description?: string;
-    type?: string;
     shopId?: string;
     parameters?: Record<string, any>;
     generatedBy?: number;
 }, {
+    type?: string;
     name?: string;
     description?: string;
-    type?: string;
     shopId?: string;
     parameters?: Record<string, any>;
     generatedBy?: number;
@@ -2136,12 +2136,12 @@ export declare const smsSchema: z.ZodObject<{
     message: z.ZodString;
     from: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    message?: string;
     to?: string;
+    message?: string;
     from?: string;
 }, {
-    message?: string;
     to?: string;
+    message?: string;
     from?: string;
 }>;
 export declare const feedbackSchema: z.ZodObject<{

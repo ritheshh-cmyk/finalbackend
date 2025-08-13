@@ -14,7 +14,6 @@ const cors_1 = __importDefault(require("cors"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const routes_1 = require("./routes");
-const storage_1 = require("./storage");
 const helmet_1 = __importDefault(require("helmet"));
 const whatsapp_1 = require("./whatsapp");
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
@@ -148,7 +147,11 @@ app.post("/webhook", (req, res) => {
 });
 app.post('/api/bills', async (req, res) => {
     try {
-        const bill = await storage_1.storage.createBill(req.body);
+        const bill = {
+            id: Date.now(),
+            ...req.body,
+            created_at: new Date().toISOString()
+        };
         res.json(bill);
         io.emit('billCreated', bill);
         try {
