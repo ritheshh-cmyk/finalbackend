@@ -114,15 +114,6 @@ async function registerRoutes(app, io) {
             res.status(500).json({ error: 'Failed to fetch dashboard data' });
         }
     });
-    app.get('/api/statistics/week', async (req, res) => {
-        try {
-            const weeklyData = await storage_1.storage.getWeeklyStatistics();
-            res.json({ data: weeklyData });
-        }
-        catch (error) {
-            res.status(500).json({ error: 'Failed to fetch weekly statistics' });
-        }
-    });
     app.get('/api/reports', async (req, res) => {
         try {
             const dateRange = req.query.dateRange;
@@ -231,15 +222,6 @@ async function registerRoutes(app, io) {
         }
         catch (error) {
             res.status(500).json({ error: 'Failed to perform search' });
-        }
-    });
-    app.get('/api/statistics/today', async (req, res) => {
-        try {
-            const stats = await storage_1.storage.getTodayStats();
-            res.json({ statistics: { today: stats } });
-        }
-        catch (error) {
-            res.status(500).json({ error: 'Failed to fetch today\'s statistics' });
         }
     });
     app.post("/api/transactions", supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
@@ -1100,41 +1082,6 @@ async function registerRoutes(app, io) {
     app.post('/api/transactions/clear', (req, res) => {
         res.status(200).json({ message: 'Not implemented' });
     });
-    app.post('/api/send-sms', (req, res) => {
-        (async () => {
-            const { phone, message } = req.body;
-            if (!phone || !message) {
-                return res.status(400).json({ success: false, error: 'Missing phone or message' });
-            }
-            try {
-                const apiKey = process.env.FAST2SMS_API_KEY;
-                if (!apiKey) {
-                    return res.status(500).json({ success: false, error: 'SMS API key not configured' });
-                }
-                const fast2smsUrl = 'https://www.fast2sms.com/dev/bulkV2';
-                const payload = {
-                    route: 'q',
-                    numbers: phone,
-                    message: message,
-                    language: 'english',
-                    flash: 0
-                };
-                const response = await axios_1.default.post(fast2smsUrl, payload, {
-                    headers: {
-                        'authorization': apiKey,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                res.json({ success: true, data: response.data });
-            }
-            catch (error) {
-                const errMsg = error.response?.data || error.message || 'Failed to send SMS';
-                res.status(500).json({ success: false, error: errMsg });
-            }
-        })().catch(error => {
-            res.status(500).json({ success: false, error: 'Failed to send SMS' });
-        });
-    });
     app.get('/api/repairs', async (req, res) => {
         try {
             const { data, error } = await supabase
@@ -1249,28 +1196,150 @@ async function registerRoutes(app, io) {
             res.status(500).json({ error: 'Failed to fetch analytics' });
         }
     });
-    app.post('/api/sms/send', (req, res) => {
-        req.url = '/api/send-sms';
+    app.get('/api/suppliers/:id', async (req, res) => {
+        try {
+            const id = parseInt(req.params.id);
+            if (isNaN(id))
+                return res.status(400).json({ message: "Invalid supplier ID" });
+            const supplier = await storage_1.storage.getSupplier(id);
+            if (!supplier) {
+                return res.status(404).json({ message: "Supplier not found" });
+            }
+            res.json(supplier);
+        }
+        catch (error) {
+            console.error('Get supplier error:', error);
+            res.status(500).json({ message: "Failed to fetch supplier" });
+        }
+    });
+    app.get('/api/customers/:id', async (req, res) => {
+        try {
+            const id = parseInt(req.params.id);
+            if (isNaN(id))
+                return res.status(400).json({ message: "Invalid customer ID" });
+            const { data: customer, error } = await supabase
+                .from('customers')
+                .select('*')
+                .eq('id', id)
+                .single();
+            if (error) {
+                console.error('Customer fetch error:', error);
+                return res.status(404).json({ message: "Customer not found" });
+            }
+            res.json(customer);
+        }
+        catch (error) {
+            console.error('Get customer error:', error);
+            res.status(500).json({ message: "Failed to fetch customer" });
+        }
+    });
+    app.post('/api/sms/send', async (req, res) => {
+        try {
+            const { phone, message } = req.body;
+            if (!phone || !message) {
+                return res.status(400).json({ success: false, error: 'Missing phone or message' });
+            }
+            const apiKey = process.env.FAST2SMS_API_KEY;
+            if (!apiKey) {
+                return res.status(500).json({ success: false, error: 'SMS API key not configured' });
+            }
+            const fast2smsUrl = 'https://www.fast2sms.com/dev/bulkV2';
+            const payload = {
+                route: 'q',
+                numbers: phone,
+                message: message,
+                language: 'english',
+                flash: 0
+            };
+            const response = await axios_1.default.post(fast2smsUrl, payload, {
+                headers: {
+                    'authorization': apiKey,
+                    'Content-Type': 'application/json'
+                }
+            });
+            res.json({ success: true, data: response.data });
+        }
+        catch (error) {
+            const errMsg = error.response?.data || error.message || 'Failed to send SMS';
+            console.error('SMS send error:', error);
+            res.status(500).json({ success: false, error: errMsg });
+        }
+    });
+    app.get('/api/statistics/today', async (req, res) => {
+        try {
+            const stats = await storage_1.storage.getTodayStats();
+            res.json(stats);
+        }
+        catch (error) {
+            console.error('Today stats error:', error);
+            res.status(500).json({ error: 'Failed to fetch today\'s statistics' });
+        }
+    });
+    app.get('/api/statistics/week', async (req, res) => {
+        try {
+            const stats = await storage_1.storage.getWeeklyStatistics();
+            res.json({ data: stats });
+        }
+        catch (error) {
+            console.error('Weekly stats error:', error);
+            res.status(500).json({ error: 'Failed to fetch weekly statistics' });
+        }
+    });
+    app.get('/api/statistics/month', async (req, res) => {
+        try {
+            const stats = await storage_1.storage.getMonthStats();
+            res.json(stats);
+        }
+        catch (error) {
+            console.error('Monthly stats error:', error);
+            res.status(500).json({ error: 'Failed to fetch monthly statistics' });
+        }
+    });
+    app.get('/api/statistics/year', async (req, res) => {
+        try {
+            const stats = await storage_1.storage.getYearStats();
+            res.json(stats);
+        }
+        catch (error) {
+            console.error('Yearly stats error:', error);
+            res.status(500).json({ error: 'Failed to fetch yearly statistics' });
+        }
+    });
+    app.post('/api/suppliers/payments', supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
+        try {
+            const payment = await storage_1.storage.createSupplierPayment(req.body);
+            res.json({ success: true, data: payment, message: 'Payment created successfully' });
+            io.emit("paymentCreated", payment);
+        }
+        catch (error) {
+            console.error('Supplier payment error:', error);
+            res.status(500).json({ success: false, error: 'Failed to create payment', details: error?.message || error });
+        }
+    });
+    app.get('/api/suppliers/expenditure-summary', async (req, res) => {
+        try {
+            const summary = await storage_1.storage.getSupplierExpenditureSummary();
+            res.json(summary);
+        }
+        catch (error) {
+            console.error('Supplier expenditure summary error:', error);
+            res.status(500).json({ error: 'Failed to fetch supplier expenditure summary' });
+        }
+    });
+    app.get('/api/stats/today', (req, res) => {
+        req.url = '/api/statistics/today';
         app._router.handle(req, res);
     });
-    app.post('/api/suppliers/payments', (req, res) => {
-        req.url = '/api/grouped-expenditure-payments';
+    app.get('/api/stats/week', (req, res) => {
+        req.url = '/api/statistics/week';
         app._router.handle(req, res);
     });
-    app.get('/api/statistics/today', (req, res) => {
-        req.url = '/api/stats/today';
+    app.get('/api/stats/month', (req, res) => {
+        req.url = '/api/statistics/month';
         app._router.handle(req, res);
     });
-    app.get('/api/statistics/week', (req, res) => {
-        req.url = '/api/stats/week';
-        app._router.handle(req, res);
-    });
-    app.get('/api/statistics/month', (req, res) => {
-        req.url = '/api/stats/month';
-        app._router.handle(req, res);
-    });
-    app.get('/api/statistics/year', (req, res) => {
-        req.url = '/api/stats/year';
+    app.get('/api/stats/year', (req, res) => {
+        req.url = '/api/statistics/year';
         app._router.handle(req, res);
     });
     app.get('/api/backup', (req, res) => {
