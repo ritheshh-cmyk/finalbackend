@@ -285,9 +285,11 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
       const offset = parseInt(req.query.offset as string) || 0;
       const search = req.query.search as string;
       const dateRange = req.query.dateRange as string;
-      let transactions;
+      
+      let query = supabase.from('transactions').select('*');
+      
       if (search) {
-        transactions = await storage.searchTransactions(search);
+        query = query.or(`customer_name.ilike.%${search}%, mobile_number.ilike.%${search}%, device_model.ilike.%${search}%, repair_type.ilike.%${search}%`);
       } else if (dateRange) {
         const today = new Date();
         let startDate: Date;
@@ -309,12 +311,21 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
           default:
             startDate = new Date(0);
         }
-        transactions = await storage.getTransactionsByDateRange(startDate, endDate);
-      } else {
-        transactions = await storage.getTransactions(limit, offset);
+        query = query.gte('created_at', startDate.toISOString()).lte('created_at', endDate.toISOString());
       }
-      res.json(transactions);
+      
+      const { data: transactions, error } = await query
+        .range(offset, offset + limit - 1)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Transactions fetch error:', error);
+        return res.status(500).json({ message: "Failed to fetch transactions" });
+      }
+
+      res.json(transactions || []);
     } catch (error) {
+      console.error('Transactions route error:', error);
       res.status(500).json({ message: "Failed to fetch transactions" });
     }
   });
@@ -437,18 +448,28 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
         const offset = parseInt(req.query.offset as string) || 0;
         const search = req.query.search as string;
 
-        let items;
+        let query = supabase.from('inventory').select('*');
+        
         if (search) {
-          items = await storage.searchInventoryItems(search);
-        } else {
-          items = await storage.getInventoryItems(limit, offset);
+          query = query.or(`name.ilike.%${search}%, category.ilike.%${search}%, brand.ilike.%${search}%`);
+        }
+        
+        const { data: items, error } = await query
+          .range(offset, offset + limit - 1)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Inventory fetch error:', error);
+          return res.status(500).json({ message: "Failed to fetch inventory items" });
         }
 
-        res.json(items);
+        res.json(items || []);
       } catch (error) {
+        console.error('Inventory route error:', error);
         res.status(500).json({ message: "Failed to fetch inventory items" });
       }
     })().catch(error => {
+      console.error('Inventory route exception:', error);
       res.status(500).json({ message: "Failed to fetch inventory items" });
     });
   });
@@ -480,18 +501,28 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
         const offset = parseInt(req.query.offset as string) || 0;
         const search = req.query.search as string;
 
-        let suppliers;
+        let query = supabase.from('suppliers').select('*');
+        
         if (search) {
-          suppliers = await storage.searchSuppliers(search);
-        } else {
-          suppliers = await storage.getSuppliers(limit, offset);
+          query = query.or(`name.ilike.%${search}%, contact_number.ilike.%${search}%`);
+        }
+        
+        const { data: suppliers, error } = await query
+          .range(offset, offset + limit - 1)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Suppliers fetch error:', error);
+          return res.status(500).json({ message: "Failed to fetch suppliers" });
         }
 
-        res.json(suppliers);
+        res.json(suppliers || []);
       } catch (error) {
+        console.error('Suppliers route error:', error);
         res.status(500).json({ message: "Failed to fetch suppliers" });
       }
     })().catch(error => {
+      console.error('Suppliers route exception:', error);
       res.status(500).json({ message: "Failed to fetch suppliers" });
     });
   });
