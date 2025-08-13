@@ -1196,13 +1196,28 @@ async function registerRoutes(app, io) {
             res.status(500).json({ error: 'Failed to fetch analytics' });
         }
     });
+    app.get('/api/suppliers/expenditure-summary', async (req, res) => {
+        try {
+            const summary = await storage_1.storage.getSupplierExpenditureSummary();
+            res.json(summary);
+        }
+        catch (error) {
+            console.error('Supplier expenditure summary error:', error);
+            res.status(500).json({ error: 'Failed to fetch supplier expenditure summary' });
+        }
+    });
     app.get('/api/suppliers/:id', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             if (isNaN(id))
                 return res.status(400).json({ message: "Invalid supplier ID" });
-            const supplier = await storage_1.storage.getSupplier(id);
-            if (!supplier) {
+            const { data: supplier, error } = await supabase
+                .from('suppliers')
+                .select('*')
+                .eq('id', id)
+                .single();
+            if (error) {
+                console.error('Supplier fetch error:', error);
                 return res.status(404).json({ message: "Supplier not found" });
             }
             res.json(supplier);
@@ -1314,16 +1329,6 @@ async function registerRoutes(app, io) {
         catch (error) {
             console.error('Supplier payment error:', error);
             res.status(500).json({ success: false, error: 'Failed to create payment', details: error?.message || error });
-        }
-    });
-    app.get('/api/suppliers/expenditure-summary', async (req, res) => {
-        try {
-            const summary = await storage_1.storage.getSupplierExpenditureSummary();
-            res.json(summary);
-        }
-        catch (error) {
-            console.error('Supplier expenditure summary error:', error);
-            res.status(500).json({ error: 'Failed to fetch supplier expenditure summary' });
         }
     });
     app.get('/api/stats/today', (req, res) => {

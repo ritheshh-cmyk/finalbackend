@@ -1295,16 +1295,35 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
 
   // --- MISSING INDIVIDUAL RESOURCE ENDPOINTS ---
 
+  // Supplier expenditure summary endpoint (must come BEFORE /api/suppliers/:id)
+  app.get('/api/suppliers/expenditure-summary', async (req, res) => {
+    try {
+      const summary = await storage.getSupplierExpenditureSummary();
+      res.json(summary);
+    } catch (error) {
+      console.error('Supplier expenditure summary error:', error);
+      res.status(500).json({ error: 'Failed to fetch supplier expenditure summary' });
+    }
+  });
+
   // Get individual supplier by ID (Frontend needs this)
   app.get('/api/suppliers/:id', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).json({ message: "Invalid supplier ID" });
       
-      const supplier = await storage.getSupplier(id);
-      if (!supplier) {
+      // Use Supabase directly for reliability
+      const { data: supplier, error } = await supabase
+        .from('suppliers')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (error) {
+        console.error('Supplier fetch error:', error);
         return res.status(404).json({ message: "Supplier not found" });
       }
+      
       res.json(supplier);
     } catch (error) {
       console.error('Get supplier error:', error);
@@ -1425,17 +1444,6 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
     } catch (error) {
       console.error('Supplier payment error:', error);
       res.status(500).json({ success: false, error: 'Failed to create payment', details: error?.message || error });
-    }
-  });
-
-  // Supplier expenditure summary endpoint
-  app.get('/api/suppliers/expenditure-summary', async (req, res) => {
-    try {
-      const summary = await storage.getSupplierExpenditureSummary();
-      res.json(summary);
-    } catch (error) {
-      console.error('Supplier expenditure summary error:', error);
-      res.status(500).json({ error: 'Failed to fetch supplier expenditure summary' });
     }
   });
 
