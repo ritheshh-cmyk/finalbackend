@@ -729,7 +729,13 @@ async function registerRoutes(app, io) {
         (async () => {
             try {
                 const validatedData = schema_1.insertExpenditureSchema.parse(req.body);
-                const expenditure = await storage_1.storage.createExpenditure(validatedData);
+                const dbData = {
+                    ...validatedData,
+                    payment_method: validatedData.paymentMethod,
+                    paid_amount: validatedData.paidAmount,
+                    remaining_amount: validatedData.remainingAmount
+                };
+                const expenditure = await storage_1.storage.createExpenditure(dbData);
                 res.json({ success: true, data: expenditure, message: 'Expenditure created successfully' });
                 io.emit("expenditureCreated", expenditure);
             }
@@ -1033,7 +1039,14 @@ async function registerRoutes(app, io) {
         (async () => {
             try {
                 const validatedData = schema_1.insertGroupedExpenditureSchema.parse(req.body);
-                const groupedExpenditure = await storage_1.storage.createGroupedExpenditure(validatedData);
+                const dbData = {
+                    ...validatedData,
+                    provider_name: validatedData.providerName,
+                    total_amount: validatedData.totalAmount,
+                    period_start: validatedData.periodStart,
+                    period_end: validatedData.periodEnd
+                };
+                const groupedExpenditure = await storage_1.storage.createGroupedExpenditure(dbData);
                 res.json({ success: true, data: groupedExpenditure, message: 'Grouped expenditure created successfully' });
                 io.emit('groupedExpenditureCreated', groupedExpenditure);
             }

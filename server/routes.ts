@@ -790,7 +790,16 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
     (async () => {
       try {
         const validatedData = insertExpenditureSchema.parse(req.body);
-        const expenditure = await storage.createExpenditure(validatedData);
+        
+        // Map camelCase to snake_case for database
+        const dbData = {
+          ...validatedData,
+          payment_method: validatedData.paymentMethod,
+          paid_amount: validatedData.paidAmount,
+          remaining_amount: validatedData.remainingAmount
+        };
+        
+        const expenditure = await storage.createExpenditure(dbData);
         res.json({ success: true, data: expenditure, message: 'Expenditure created successfully' });
         io.emit("expenditureCreated", expenditure);
       } catch (error) {
@@ -1125,7 +1134,17 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
     (async () => {
       try {
         const validatedData = insertGroupedExpenditureSchema.parse(req.body);
-        const groupedExpenditure = await storage.createGroupedExpenditure(validatedData);
+        
+        // Map camelCase to snake_case for database
+        const dbData = {
+          ...validatedData,
+          provider_name: validatedData.providerName,
+          total_amount: validatedData.totalAmount,
+          period_start: validatedData.periodStart,
+          period_end: validatedData.periodEnd
+        };
+        
+        const groupedExpenditure = await storage.createGroupedExpenditure(dbData);
         res.json({ success: true, data: groupedExpenditure, message: 'Grouped expenditure created successfully' });
         io.emit('groupedExpenditureCreated', groupedExpenditure);
       } catch (error) {
