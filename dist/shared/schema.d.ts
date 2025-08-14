@@ -1688,13 +1688,13 @@ export declare const insertTransactionSchema: z.ZodObject<{
     shop_id: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     shop_id?: string;
-    profit?: number;
     customerName?: string;
     mobileNumber?: string;
     deviceModel?: string;
     repairType?: string;
     repairCost?: number;
     actualCost?: number;
+    profit?: number;
     amountGiven?: number;
     changeReturned?: number;
     paymentMethod?: string;
@@ -1724,13 +1724,13 @@ export declare const insertTransactionSchema: z.ZodObject<{
     repairServiceType?: "internal" | "external";
 }, {
     shop_id?: string;
-    profit?: number;
     customerName?: string;
     mobileNumber?: string;
     deviceModel?: string;
     repairType?: string;
     repairCost?: number;
     actualCost?: number;
+    profit?: number;
     amountGiven?: number;
     changeReturned?: number;
     paymentMethod?: string;
@@ -1770,22 +1770,22 @@ export declare const insertInventoryItemSchema: z.ZodObject<{
     shop_id: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     shop_id?: string;
-    cost?: number;
-    supplier?: string;
     partName?: string;
     partType?: string;
     compatibleDevices?: string;
+    cost?: number;
     sellingPrice?: number;
     quantity?: number;
+    supplier?: string;
 }, {
     shop_id?: string;
-    cost?: number;
-    supplier?: string;
     partName?: string;
     partType?: string;
     compatibleDevices?: string;
+    cost?: number;
     sellingPrice?: number;
     quantity?: number;
+    supplier?: string;
 }>;
 export declare const insertSupplierSchema: z.ZodObject<{
     name: z.ZodString;
@@ -1793,13 +1793,13 @@ export declare const insertSupplierSchema: z.ZodObject<{
     address: z.ZodOptional<z.ZodString>;
     shop_id: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    shop_id?: string;
     name?: string;
+    shop_id?: string;
     contactNumber?: string;
     address?: string;
 }, {
-    shop_id?: string;
     name?: string;
+    shop_id?: string;
     contactNumber?: string;
     address?: string;
 }>;
@@ -1933,15 +1933,15 @@ export declare const insertUserSchema: z.ZodObject<{
     shop_id: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     username?: string;
+    password?: string;
     role?: string;
     shop_id?: string;
-    password?: string;
     permanent?: boolean;
 }, {
     username?: string;
+    password?: string;
     role?: string;
     shop_id?: string;
-    password?: string;
     permanent?: boolean;
 }>;
 export declare const insertBillSchema: z.ZodObject<{
@@ -2000,8 +2000,8 @@ export declare const insertNotificationSchema: z.ZodObject<{
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
     shopId: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    type?: string;
     message?: string;
+    type?: string;
     shopId?: string;
     title?: string;
     userId?: number;
@@ -2009,8 +2009,8 @@ export declare const insertNotificationSchema: z.ZodObject<{
     actionUrl?: string;
     metadata?: Record<string, any>;
 }, {
-    type?: string;
     message?: string;
+    type?: string;
     shopId?: string;
     title?: string;
     userId?: number;
@@ -2104,16 +2104,16 @@ export declare const insertReportSchema: z.ZodObject<{
     generatedBy: z.ZodOptional<z.ZodNumber>;
     shopId: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    type?: string;
     name?: string;
     description?: string;
+    type?: string;
     shopId?: string;
     parameters?: Record<string, any>;
     generatedBy?: number;
 }, {
-    type?: string;
     name?: string;
     description?: string;
+    type?: string;
     shopId?: string;
     parameters?: Record<string, any>;
     generatedBy?: number;

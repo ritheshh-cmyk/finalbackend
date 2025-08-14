@@ -35,4 +35,4 @@ export declare class DatabaseStorage {
     getNotifications(userId?: number): Promise<any[]>;
 }
 export declare const storage: DatabaseStorage;
-//# sourceMappingURL=storage.d.ts.map
+//# sourceMappingURL=storage-enhanced.d.ts.map
