@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { storage } from './storage';
+import { storage } from './storage.js';
 import logger from './logger';
 import { User } from '../shared/types';
 

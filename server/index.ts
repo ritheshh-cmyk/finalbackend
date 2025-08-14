@@ -10,7 +10,7 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { registerRoutes } from './routes';
-import { storage } from './storage';
+import { storage } from './storage.js';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { Request, Response, NextFunction } from 'express';

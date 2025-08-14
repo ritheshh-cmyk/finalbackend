@@ -9,7 +9,7 @@ exports.requireNotDemo = requireNotDemo;
 const express_1 = __importDefault(require("express"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const storage_1 = require("./storage");
+const storage_js_1 = require("./storage.js");
 const logger_1 = __importDefault(require("./logger"));
 function requireAuth(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -72,7 +72,7 @@ router.post('/login', (req, res) => {
             });
         }
         logger_1.default.info(`🔍 Looking up user: ${username}`);
-        const user = await storage_1.storage.getUserByUsername(username);
+        const user = await storage_js_1.storage.getUserByUsername(username);
         if (!user) {
             logger_1.default.warn(`❌ Login failed: User not found`, {
                 username,
@@ -163,11 +163,11 @@ router.post('/register', (req, res) => {
         if (!username || !password) {
             return res.status(400).json({ error: 'Username and password are required' });
         }
-        const existingUser = await storage_1.storage.getUserByUsername(username);
+        const existingUser = await storage_js_1.storage.getUserByUsername(username);
         if (existingUser) {
             return res.status(409).json({ error: 'Username already exists' });
         }
-        const newUser = await storage_1.storage.createUser({ username, password, role });
+        const newUser = await storage_js_1.storage.createUser({ username, password, role });
         const token = jsonwebtoken_1.default.sign({ id: newUser.id, username: newUser.username, role: newUser.role }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '24h' });
         res.status(201).json({
             message: 'User created successfully',
@@ -188,7 +188,7 @@ router.post('/register', (req, res) => {
 router.get('/me', requireAuth, (req, res) => {
     (async () => {
         const userId = req.user.id;
-        const user = await storage_1.storage.getUserById(userId);
+        const user = await storage_js_1.storage.getUserById(userId);
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }

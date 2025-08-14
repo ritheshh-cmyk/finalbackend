@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RealtimeService = void 0;
-const storage_1 = require("./storage");
+const storage_js_1 = require("./storage.js");
 const logger_1 = __importDefault(require("./logger"));
 class RealtimeService {
     constructor(io) {
@@ -27,7 +27,7 @@ class RealtimeService {
             socket.on('authenticate', async (data) => {
                 try {
                     const userId = parseInt(data.userId);
-                    const user = await storage_1.storage.getUserById(userId);
+                    const user = await storage_js_1.storage.getUserById(userId);
                     if (user) {
                         this.connectedUsers.set(socket.id, {
                             socketId: socket.id,
@@ -147,10 +147,10 @@ class RealtimeService {
         return [];
     }
     async getBusinessOverview() {
-        return await storage_1.storage.getDashboardTotals();
+        return await storage_js_1.storage.getDashboardTotals();
     }
     async getFinancialSummary() {
-        return await storage_1.storage.getTodayStats();
+        return await storage_js_1.storage.getTodayStats();
     }
     async getPerformanceMetrics() {
         return { performance: 'good' };
@@ -185,7 +185,7 @@ class RealtimeService {
     }
     async getBusinessMetrics() {
         try {
-            const stats = await storage_1.storage.getTodayStats();
+            const stats = await storage_js_1.storage.getTodayStats();
             return {
                 todayRevenue: stats.totalRevenue || 0,
                 pendingRepairs: stats.pendingRepairs || 0,

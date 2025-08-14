@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { storage } from './storage';
+import { storage } from './storage.js';
 import { Request, Response, NextFunction } from 'express';
 import logger from './logger';
 
