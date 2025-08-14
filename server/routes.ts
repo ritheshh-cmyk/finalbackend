@@ -482,6 +482,32 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
     }
   });
 
+  // Transaction Search Route (MUST be before :id route)
+  app.get("/api/transactions/search", async (req, res) => {
+      try {
+        const q = req.query.q as string;
+        if (!q) {
+          return res.status(400).json({ message: "Search query parameter 'q' is required" });
+        }
+        
+        const { data: transactions, error } = await supabase
+          .from('transactions')
+          .select('*')
+          .or(`description.ilike.%${q}%,amount.eq.${parseFloat(q) || 0}`)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Transaction search error:', error);
+          return res.status(500).json({ message: "Failed to search transactions" });
+        }
+
+        res.json(transactions || []);
+      } catch (error) {
+        console.error('Transaction search route error:', error);
+        res.status(500).json({ message: "Failed to search transactions" });
+      }
+  });
+
   // Get a single transaction by ID
   app.get("/api/transactions/:id", async (req, res) => {
       try {
@@ -608,32 +634,6 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
         res.json(stats);
       } catch (error) {
         res.status(500).json({ message: "Failed to fetch year's stats" });
-      }
-  });
-
-  // Transaction Search Route
-  app.get("/api/transactions/search", async (req, res) => {
-      try {
-        const q = req.query.q as string;
-        if (!q) {
-          return res.status(400).json({ message: "Search query parameter 'q' is required" });
-        }
-        
-        const { data: transactions, error } = await supabase
-          .from('transactions')
-          .select('*')
-          .or(`description.ilike.%${q}%,amount.eq.${parseFloat(q) || 0}`)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Transaction search error:', error);
-          return res.status(500).json({ message: "Failed to search transactions" });
-        }
-
-        res.json(transactions || []);
-      } catch (error) {
-        console.error('Transaction search route error:', error);
-        res.status(500).json({ message: "Failed to search transactions" });
       }
   });
 
