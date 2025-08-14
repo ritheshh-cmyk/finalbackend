@@ -2570,3 +2570,11 @@
 {"level":"info","message":"📊 API endpoints available at: http://localhost:10000/api","timestamp":"2025-08-13T18:52:23.017Z"}
 {"level":"info","message":"🔐 Supabase Auth endpoints: http://localhost:10000/api/auth","timestamp":"2025-08-13T18:52:23.017Z"}
 {"level":"info","message":"🔌 WebSocket server ready with Supabase integration","timestamp":"2025-08-13T18:52:23.017Z"}
+{"level":"info","message":"🔄 Using Supabase Auth - default users managed via database migration","timestamp":"2025-08-14T08:31:42.131Z"}
+{"level":"info","message":"🔄 Metrics updater started (30s interval)","timestamp":"2025-08-14T08:31:42.138Z"}
+{"level":"info","message":"✅ Supabase Auth environment variables verified","timestamp":"2025-08-14T08:31:42.138Z"}
+{"level":"info","message":"✅ Server running on port 10000 with Supabase Auth","timestamp":"2025-08-14T08:31:42.143Z"}
+{"level":"info","message":"🌐 Health check: http://localhost:10000/health","timestamp":"2025-08-14T08:31:42.143Z"}
+{"level":"info","message":"📊 API endpoints available at: http://localhost:10000/api","timestamp":"2025-08-14T08:31:42.143Z"}
+{"level":"info","message":"🔐 Supabase Auth endpoints: http://localhost:10000/api/auth","timestamp":"2025-08-14T08:31:42.144Z"}
+{"level":"info","message":"🔌 WebSocket server ready with Supabase integration","timestamp":"2025-08-14T08:31:42.144Z"}
