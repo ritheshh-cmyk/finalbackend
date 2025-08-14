@@ -363,8 +363,7 @@ async function registerRoutes(app, io) {
             const q = req.query.q || '';
             const transactionResults = await storage_1.storage.searchTransactions(q);
             const supplierResults = await storage_1.storage.searchSuppliers(q);
-            const inventoryResults = await storage_1.storage.searchInventory(q);
-            res.json({ query: q, transactions: transactionResults, suppliers: supplierResults, inventory: inventoryResults });
+            res.json({ query: q, transactions: transactionResults, suppliers: supplierResults });
         }
         catch (error) {
             res.status(500).json({ error: 'Failed to perform search' });
@@ -583,53 +582,6 @@ async function registerRoutes(app, io) {
             console.error('Transaction search route error:', error);
             res.status(500).json({ message: "Failed to search transactions" });
         }
-    });
-    app.post("/api/inventory", supabase_auth_middleware_1.requireNotDemo, (req, res) => {
-        (async () => {
-            try {
-                const validatedData = schema_1.insertInventoryItemSchema.parse(req.body);
-                const item = await storage_1.storage.createInventoryItem(validatedData);
-                res.json(item);
-            }
-            catch (error) {
-                if (error instanceof zod_1.z.ZodError) {
-                    res.status(400).json({ message: "Validation error", errors: error.errors });
-                }
-                else {
-                    res.status(500).json({ message: "Failed to create inventory item" });
-                }
-            }
-        })().catch(error => {
-            res.status(500).json({ message: "Failed to create inventory item" });
-        });
-    });
-    app.get("/api/inventory", (req, res) => {
-        (async () => {
-            try {
-                const limit = parseInt(req.query.limit) || 50;
-                const offset = parseInt(req.query.offset) || 0;
-                const search = req.query.search;
-                let query = supabase.from('inventory').select('*');
-                if (search) {
-                    query = query.or(`name.ilike.%${search}%, category.ilike.%${search}%, brand.ilike.%${search}%`);
-                }
-                const { data: items, error } = await query
-                    .range(offset, offset + limit - 1)
-                    .order('created_at', { ascending: false });
-                if (error) {
-                    console.error('Inventory fetch error:', error);
-                    return res.status(500).json({ message: "Failed to fetch inventory items" });
-                }
-                res.json(items || []);
-            }
-            catch (error) {
-                console.error('Inventory route error:', error);
-                res.status(500).json({ message: "Failed to fetch inventory items" });
-            }
-        })().catch(error => {
-            console.error('Inventory route exception:', error);
-            res.status(500).json({ message: "Failed to fetch inventory items" });
-        });
     });
     app.post("/api/suppliers", supabase_auth_middleware_1.requireNotDemo, (req, res) => {
         (async () => {
@@ -1744,17 +1696,6 @@ async function registerRoutes(app, io) {
         catch (error) {
             console.error('Search suppliers error:', error);
             res.status(500).json({ error: 'Failed to search suppliers' });
-        }
-    });
-    app.get('/api/search/inventory', async (req, res) => {
-        try {
-            const q = req.query.q || '';
-            const results = await storage_1.storage.searchInventory(q);
-            res.json(results);
-        }
-        catch (error) {
-            console.error('Search inventory error:', error);
-            res.status(500).json({ error: 'Failed to search inventory' });
         }
     });
     app.get('/api/reports/date-range', async (req, res) => {
