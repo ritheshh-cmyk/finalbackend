@@ -443,7 +443,7 @@ async function registerRoutes(app, io) {
             const { data: transactions, error } = await supabase
                 .from('transactions')
                 .select('*')
-                .or(`customer_name.ilike.%${q}%,device_model.ilike.%${q}%,repair_type.ilike.%${q}%,remarks.ilike.%${q}%,repair_cost.eq.${parseFloat(q) || 0}`)
+                .ilike('customer_name', `%${q}%`)
                 .order('created_at', { ascending: false });
             if (error) {
                 console.error('Transaction search error:', error);
