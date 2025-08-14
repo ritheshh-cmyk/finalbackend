@@ -227,5 +227,26 @@ export namespace storage {
         shop_id: string;
         created_at: string;
     }>;
+    function getAllReports(): Promise<{
+        id: number;
+        name: string;
+        type: string;
+        status: string;
+        created_at: string;
+    }[]>;
+    function getAllPermissions(): Promise<{
+        id: number;
+        role: string;
+        resource: string;
+        action: string;
+        allowed: boolean;
+    }[]>;
+    function getReportsByDateRange(dateRange: any): Promise<{
+        id: number;
+        name: string;
+        type: string;
+        status: string;
+        created_at: string;
+    }[]>;
 }
 //# sourceMappingURL=storage.d.ts.map

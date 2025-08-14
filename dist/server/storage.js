@@ -159,7 +159,46 @@ const storage = {
     async getTransaction() { return (await this.getTransactions(1))[0]; },
     async getSupplier() { return (await this.getSuppliers(1))[0]; },
     async getExpenditure() { return (await this.getExpenditures())[0]; },
-    async getGroupedExpenditure() { return (await this.getGroupedExpenditures())[0]; }
+    async getGroupedExpenditure() { return (await this.getGroupedExpenditures())[0]; },
+    async getAllReports() {
+        return [
+            {
+                id: 1,
+                name: 'Daily Sales Report',
+                type: 'sales',
+                status: 'completed',
+                created_at: new Date().toISOString()
+            },
+            {
+                id: 2,
+                name: 'Weekly Revenue Report',
+                type: 'revenue',
+                status: 'completed',
+                created_at: new Date().toISOString()
+            }
+        ];
+    },
+    async getAllPermissions() {
+        return [
+            {
+                id: 1,
+                role: 'admin',
+                resource: 'users',
+                action: 'create',
+                allowed: true
+            },
+            {
+                id: 2,
+                role: 'admin',
+                resource: 'transactions',
+                action: 'read',
+                allowed: true
+            }
+        ];
+    },
+    async getReportsByDateRange(dateRange) {
+        return this.getAllReports();
+    }
 };
 module.exports = { storage };
 //# sourceMappingURL=storage.js.map
