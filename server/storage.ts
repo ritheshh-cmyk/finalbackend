@@ -439,7 +439,7 @@ class DatabaseStorage {
   }
 
   // Dashboard methods
-    async getDashboardTotals(): Promise<any> {
+  async getDashboardTotals(): Promise<any> {
     try {
       console.log('📊 Getting dashboard totals...');
       
