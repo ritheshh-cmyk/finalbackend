@@ -382,57 +382,54 @@ class DatabaseStorage {
         }
     }
     async getDashboardTotals() {
-        console.log('🔍 Starting getDashboardTotals v3.0 - DIRECT APPROACH...');
         try {
-            console.log('📊 Getting transactions directly...');
-            const { data: transactions, error: transError } = await supabase
+            console.log('📊 Getting dashboard totals...');
+            const { data: transactions, error } = await supabase
                 .from('transactions')
                 .select('*')
                 .order('created_at', { ascending: false });
-            if (transError) {
-                console.error('❌ Transaction query error:', transError);
-                throw transError;
+            if (error) {
+                console.error('Error getting transactions for dashboard:', error);
+                throw error;
             }
-            console.log(`✅ Found ${transactions?.length || 0} transactions`);
-            console.log('📊 Getting suppliers directly...');
-            const { data: suppliers, error: suppError } = await supabase
-                .from('suppliers')
-                .select('*');
-            if (suppError) {
-                console.error('❌ Supplier query error:', suppError);
-            }
-            console.log(`✅ Found ${suppliers?.length || 0} suppliers`);
             const transactionList = transactions || [];
+            console.log(`Found ${transactionList.length} transactions for dashboard`);
             let totalRevenue = 0;
             let totalProfit = 0;
-            console.log('📊 Calculating totals...');
-            transactionList.forEach((t, index) => {
-                const revenue = parseFloat(t.repair_cost) || 0;
-                const profit = parseFloat(t.profit) || 0;
+            let completedCount = 0;
+            let pendingCount = 0;
+            transactionList.forEach(transaction => {
+                const revenue = parseFloat(transaction.repair_cost) || 0;
                 totalRevenue += revenue;
+                const profit = parseFloat(transaction.profit) || 0;
                 totalProfit += profit;
-                if (index < 3) {
-                    console.log(`   Transaction ${t.id}: revenue=${revenue}, profit=${profit}`);
+                if (transaction.status === 'completed' || transaction.status === 'Completed') {
+                    completedCount++;
+                }
+                else if (transaction.status === 'pending' || transaction.status === 'Pending') {
+                    pendingCount++;
                 }
             });
-            console.log(`📊 Final totals: Revenue=₹${totalRevenue}, Profit=₹${totalProfit}`);
+            const { data: suppliers } = await supabase
+                .from('suppliers')
+                .select('*');
             const result = {
                 totalTransactions: transactionList.length,
                 totalRevenue,
                 totalProfit,
-                totalSuppliers: suppliers?.length || 0,
+                totalSuppliers: (suppliers || []).length,
                 totalBills: 0,
                 totalUsers: 1,
                 avgTransactionValue: transactionList.length > 0 ? totalRevenue / transactionList.length : 0,
-                completedTransactions: transactionList.filter(t => t.status === 'completed' || t.status === 'Completed').length,
-                pendingTransactions: transactionList.filter(t => t.status === 'pending' || t.status === 'Pending').length
+                completedTransactions: completedCount,
+                pendingTransactions: pendingCount,
             };
-            console.log('✅ getDashboardTotals v3.0 result:', result);
+            console.log('✅ Dashboard totals calculated:', result);
             return result;
         }
         catch (error) {
-            console.error('❌ getDashboardTotals v3.0 error:', error);
-            const errorResult = {
+            console.error('Error in getDashboardTotals:', error);
+            return {
                 totalTransactions: 0,
                 totalRevenue: 0,
                 totalProfit: 0,
@@ -441,10 +438,8 @@ class DatabaseStorage {
                 totalUsers: 0,
                 avgTransactionValue: 0,
                 completedTransactions: 0,
-                pendingTransactions: 0
+                pendingTransactions: 0,
             };
-            console.log('❌ Returning error result:', errorResult);
-            return errorResult;
         }
     }
     async getRecentTransactions(limit = 5) {
