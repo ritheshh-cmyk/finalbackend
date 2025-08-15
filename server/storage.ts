@@ -440,17 +440,55 @@ class DatabaseStorage {
 
   // Dashboard methods
   async getDashboardTotals(): Promise<any> {
+    console.log('🔍 Starting getDashboardTotals...');
+    
     try {
-      const [transactions, suppliers, bills] = await Promise.all([
-        this.getTransactions(),
-        this.getSuppliers(),
-        this.getBills()
-      ]);
+      // Get data with individual error handling instead of Promise.all()
+      let transactions = [];
+      let suppliers = [];
+      let bills = [];
 
-      const totalRevenue = transactions.reduce((sum, t) => sum + (parseFloat(t.repair_cost) || 0), 0);
-      const totalProfit = transactions.reduce((sum, t) => sum + (parseFloat(t.profit) || 0), 0);
+      // Get transactions with error handling
+      try {
+        transactions = await this.getTransactions();
+        console.log(`✅ Got ${transactions.length} transactions`);
+      } catch (error) {
+        console.error('❌ Error getting transactions:', error);
+        transactions = [];
+      }
 
-      return {
+      // Get suppliers with error handling
+      try {
+        suppliers = await this.getSuppliers();
+        console.log(`✅ Got ${suppliers.length} suppliers`);
+      } catch (error) {
+        console.error('❌ Error getting suppliers:', error);
+        suppliers = [];
+      }
+
+      // Get bills with error handling (this might be the problematic one)
+      try {
+        bills = await this.getBills();
+        console.log(`✅ Got ${bills.length} bills`);
+      } catch (error) {
+        console.error('❌ Error getting bills (this might be expected):', error);
+        bills = []; // Bills table might not exist, which is fine
+      }
+
+      // Calculate totals
+      const totalRevenue = transactions.reduce((sum, t) => {
+        const revenue = parseFloat(t.repair_cost) || 0;
+        return sum + revenue;
+      }, 0);
+
+      const totalProfit = transactions.reduce((sum, t) => {
+        const profit = parseFloat(t.profit) || 0;
+        return sum + profit;
+      }, 0);
+
+      console.log(`📊 Calculated totals: Revenue=₹${totalRevenue}, Profit=₹${totalProfit}`);
+
+      const result = {
         totalTransactions: transactions.length,
         totalRevenue,
         totalProfit,
@@ -458,12 +496,18 @@ class DatabaseStorage {
         totalBills: bills.length,
         totalUsers: 1, // Mock value
         avgTransactionValue: transactions.length > 0 ? totalRevenue / transactions.length : 0,
-        completedTransactions: transactions.filter(t => t.status === 'completed').length,
-        pendingTransactions: transactions.filter(t => t.status === 'pending').length
+        completedTransactions: transactions.filter(t => t.status === 'completed' || t.status === 'Completed').length,
+        pendingTransactions: transactions.filter(t => t.status === 'pending' || t.status === 'Pending').length
       };
+
+      console.log('✅ getDashboardTotals result:', result);
+      return result;
+
     } catch (error) {
-      console.error('Error getting dashboard totals:', error);
-      return {
+      console.error('❌ Error in getDashboardTotals:', error);
+      
+      // Return error values with better logging
+      const errorResult = {
         totalTransactions: 0,
         totalRevenue: 0,
         totalProfit: 0,
@@ -474,6 +518,9 @@ class DatabaseStorage {
         completedTransactions: 0,
         pendingTransactions: 0
       };
+
+      console.log('❌ Returning error result:', errorResult);
+      return errorResult;
     }
   }
 
