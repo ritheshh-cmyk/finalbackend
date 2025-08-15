@@ -44,7 +44,7 @@ class DatabaseStorage {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, username, role, shop_id, created_at')
+        .select('id, username, password, role, shop_id, created_at')
         .eq('username', username)
         .single();
 
