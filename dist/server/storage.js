@@ -31,8 +31,13 @@ class DatabaseStorage {
                 .single();
             if (error || !data)
                 return null;
-            const user = { ...data, password: data.password_hash };
-            return user;
+            return {
+                id: data.id,
+                username: data.username,
+                password: data.password_hash,
+                role: data.role,
+                shop_id: data.shop_id,
+            };
         }
         catch (error) {
             console.error('Error getting user by username:', error);

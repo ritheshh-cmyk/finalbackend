@@ -49,9 +49,14 @@ class DatabaseStorage {
         .single();
 
       if (error || !data) return null;
-      // Map password_hash to password for bcrypt compatibility
-      const user = { ...data, password: data.password_hash };
-      return user as unknown as User;
+      // Return user with password field mapped from password_hash
+      return {
+        id: data.id,
+        username: data.username,
+        password: data.password_hash,
+        role: data.role,
+        shop_id: data.shop_id,
+      } as unknown as User;
     } catch (error) {
       console.error('Error getting user by username:', error);
       return null;
