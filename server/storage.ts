@@ -843,7 +843,7 @@ class DatabaseStorage {
   }
 }
 
-export const storage = new Storage();
+export const storage = new DatabaseStorage();
 
 // Export helper functions for worker time restrictions
 export { isTransactionOlderThan24Hours, canWorkerModifyTransaction };
