@@ -440,73 +440,77 @@ class DatabaseStorage {
 
   // Dashboard methods
   async getDashboardTotals(): Promise<any> {
-    console.log('🔍 Starting getDashboardTotals v2.0 - Aug 16 2025...');
+    console.log('🔍 Starting getDashboardTotals v3.0 - DIRECT APPROACH...');
     
     try {
-      // Get data with individual error handling instead of Promise.all()
-      let transactions = [];
-      let suppliers = [];
-      let bills = [];
+      // Direct database queries without relying on other methods
+      console.log('📊 Getting transactions directly...');
+      const { data: transactions, error: transError } = await supabase
+        .from('transactions')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      // Get transactions with error handling
-      try {
-        transactions = await this.getTransactions();
-        console.log(`✅ Got ${transactions.length} transactions`);
-      } catch (error) {
-        console.error('❌ Error getting transactions:', error);
-        transactions = [];
+      if (transError) {
+        console.error('❌ Transaction query error:', transError);
+        throw transError;
       }
 
-      // Get suppliers with error handling
-      try {
-        suppliers = await this.getSuppliers();
-        console.log(`✅ Got ${suppliers.length} suppliers`);
-      } catch (error) {
-        console.error('❌ Error getting suppliers:', error);
-        suppliers = [];
+      console.log(`✅ Found ${transactions?.length || 0} transactions`);
+
+      console.log('📊 Getting suppliers directly...');
+      const { data: suppliers, error: suppError } = await supabase
+        .from('suppliers')
+        .select('*');
+
+      if (suppError) {
+        console.error('❌ Supplier query error:', suppError);
+        // Don't throw, just log and continue
       }
 
-      // Get bills with error handling (this might be the problematic one)
-      try {
-        bills = await this.getBills();
-        console.log(`✅ Got ${bills.length} bills`);
-      } catch (error) {
-        console.error('❌ Error getting bills (this might be expected):', error);
-        bills = []; // Bills table might not exist, which is fine
-      }
+      console.log(`✅ Found ${suppliers?.length || 0} suppliers`);
 
-      // Calculate totals
-      const totalRevenue = transactions.reduce((sum, t) => {
+      // Calculate totals directly
+      const transactionList = transactions || [];
+      let totalRevenue = 0;
+      let totalProfit = 0;
+
+      console.log('📊 Calculating totals...');
+      transactionList.forEach((t, index) => {
         const revenue = parseFloat(t.repair_cost) || 0;
-        return sum + revenue;
-      }, 0);
-
-      const totalProfit = transactions.reduce((sum, t) => {
         const profit = parseFloat(t.profit) || 0;
-        return sum + profit;
-      }, 0);
+        
+        totalRevenue += revenue;
+        totalProfit += profit;
+        
+        if (index < 3) { // Log first 3 for debugging
+          console.log(`   Transaction ${t.id}: revenue=${revenue}, profit=${profit}`);
+        }
+      });
 
-      console.log(`📊 Calculated totals: Revenue=₹${totalRevenue}, Profit=₹${totalProfit}`);
+      console.log(`📊 Final totals: Revenue=₹${totalRevenue}, Profit=₹${totalProfit}`);
 
       const result = {
-        totalTransactions: transactions.length,
+        totalTransactions: transactionList.length,
         totalRevenue,
         totalProfit,
-        totalSuppliers: suppliers.length,
-        totalBills: bills.length,
-        totalUsers: 1, // Mock value
-        avgTransactionValue: transactions.length > 0 ? totalRevenue / transactions.length : 0,
-        completedTransactions: transactions.filter(t => t.status === 'completed' || t.status === 'Completed').length,
-        pendingTransactions: transactions.filter(t => t.status === 'pending' || t.status === 'Pending').length
+        totalSuppliers: suppliers?.length || 0,
+        totalBills: 0, // Skip bills for now
+        totalUsers: 1,
+        avgTransactionValue: transactionList.length > 0 ? totalRevenue / transactionList.length : 0,
+        completedTransactions: transactionList.filter(t => 
+          t.status === 'completed' || t.status === 'Completed'
+        ).length,
+        pendingTransactions: transactionList.filter(t => 
+          t.status === 'pending' || t.status === 'Pending'
+        ).length
       };
 
-      console.log('✅ getDashboardTotals result:', result);
+      console.log('✅ getDashboardTotals v3.0 result:', result);
       return result;
 
     } catch (error) {
-      console.error('❌ Error in getDashboardTotals:', error);
+      console.error('❌ getDashboardTotals v3.0 error:', error);
       
-      // Return error values with better logging
       const errorResult = {
         totalTransactions: 0,
         totalRevenue: 0,
