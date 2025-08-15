@@ -243,12 +243,23 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
   });
 
   // Dashboard Stats Route (Frontend expects this)
-  app.get('/api/dashboard/stats', async (req, res) => {
+  // Dashboard stats with role-based access (admin/owner get full data)
+  app.get('/api/dashboard/stats', optionalAuth, async (req, res) => {
     try {
-      const totals = await storage.getDashboardTotals();
-      const todayStats = await storage.getTodayStats();
-      const weekStats = await storage.getWeekStats();
-      res.json({ totals, today: todayStats, week: weekStats });
+      const userRole = req.user?.role;
+      console.log(`📊 Dashboard stats requested by role: ${userRole || 'guest'}`);
+      
+      const totals = await storage.getDashboardTotals(userRole);
+      const todayStats = await storage.getTodayStats(userRole);
+      const weekStats = await storage.getWeekStats(userRole);
+      
+      res.json({ 
+        totals, 
+        today: todayStats, 
+        week: weekStats,
+        userRole: userRole || 'guest',
+        fullAccess: userRole !== 'worker'
+      });
     } catch (error) {
       console.error('Dashboard stats error:', error);
       res.status(500).json({ error: 'Failed to fetch dashboard stats' });
@@ -694,25 +705,28 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
   });
 
   // Transaction Search Route (MUST be before :id route)
-  app.get("/api/transactions/search", async (req, res) => {
+  // Search transactions with role-based filtering
+  app.get("/api/transactions/search", optionalAuth, async (req, res) => {
       try {
         const q = req.query.q as string;
+        const userRole = req.user?.role;
+        
         if (!q) {
           return res.status(400).json({ message: "Search query parameter 'q' is required" });
         }
         
-        const { data: transactions, error } = await supabase
-          .from('transactions')
-          .select('*')
-          .ilike('customer_name', `%${q}%`)
-          .order('created_at', { ascending: false });
+        console.log(`🔍 Transaction search by role: ${userRole || 'guest'}, query: "${q}"`);
+        
+        // Use the storage method with role-based filtering
+        const transactions = await storage.searchTransactions(q, userRole);
 
-        if (error) {
-          console.error('Transaction search error:', error);
-          return res.status(500).json({ message: "Failed to search transactions" });
-        }
-
-        res.json(transactions || []);
+        res.json({
+          results: transactions,
+          total: transactions.length,
+          userRole: userRole || 'guest',
+          query: q,
+          restricted: userRole === 'worker'
+        });
       } catch (error) {
         console.error('Transaction search route error:', error);
         res.status(500).json({ message: "Failed to search transactions" });
@@ -2133,22 +2147,43 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
 
   // --- MISSING SEARCH ENDPOINTS ---
   
-  app.get('/api/search/transactions', async (req, res) => {
+  // Search transactions endpoint with role-based access
+  app.get('/api/search/transactions', optionalAuth, async (req, res) => {
     try {
       const q = req.query.q as string || '';
-      const results = await storage.searchTransactions(q);
-      res.json(results);
+      const userRole = req.user?.role;
+      
+      console.log(`🔍 Search transactions by role: ${userRole || 'guest'}, query: "${q}"`);
+      
+      const results = await storage.searchTransactions(q, userRole);
+      res.json({
+        results: results,
+        total: results.length,
+        userRole: userRole || 'guest',
+        query: q,
+        restricted: userRole === 'worker'
+      });
     } catch (error) {
       console.error('Search transactions error:', error);
       res.status(500).json({ error: 'Failed to search transactions' });
     }
   });
 
-  app.get('/api/search/suppliers', async (req, res) => {
+  // Search suppliers endpoint (no role restrictions needed for suppliers)
+  app.get('/api/search/suppliers', optionalAuth, async (req, res) => {
     try {
       const q = req.query.q as string || '';
+      const userRole = req.user?.role;
+      
+      console.log(`🔍 Search suppliers by role: ${userRole || 'guest'}, query: "${q}"`);
+      
       const results = await storage.searchSuppliers(q);
-      res.json(results);
+      res.json({
+        results: results,
+        total: results.length,
+        userRole: userRole || 'guest',
+        query: q
+      });
     } catch (error) {
       console.error('Search suppliers error:', error);
       res.status(500).json({ error: 'Failed to search suppliers' });

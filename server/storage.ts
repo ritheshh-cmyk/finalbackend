@@ -495,47 +495,71 @@ class DatabaseStorage {
   }
 
   // Stats methods
-  async getTodayStats(): Promise<any> {
+  async getTodayStats(userRole?: string): Promise<any> {
     try {
       const today = new Date().toISOString().split('T')[0];
       
       const { data: transactions, error } = await supabase
         .from('transactions')
-        .select('repair_cost')
+        .select('repair_cost, profit')
         .gte('created_at', today + 'T00:00:00.000Z')
-        .lt('created_at', today + 'T23:59:59.999Z');
+        .lt('created_at', today + 'T23:59:59.999Z')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       
-      const count = transactions.length;
-      const revenue = transactions.reduce((sum, t) => sum + (parseFloat(t.repair_cost) || 0), 0);
+      let filteredTransactions = transactions || [];
+      
+      // 🔒 ROLE-BASED FILTERING FOR STATS
+      if (userRole === 'worker') {
+        filteredTransactions = filteredTransactions.slice(0, 20);
+        console.log(`🚫 Worker role today stats - limited to ${filteredTransactions.length} transactions`);
+      } else {
+        console.log(`✅ Full access today stats - showing ${filteredTransactions.length} transactions`);
+      }
+      
+      const count = filteredTransactions.length;
+      const revenue = filteredTransactions.reduce((sum, t) => sum + (parseFloat(t.repair_cost) || 0), 0);
+      const profit = filteredTransactions.reduce((sum, t) => sum + (parseFloat(t.profit) || 0), 0);
 
-      return { transactions: count, revenue };
+      return { transactions: count, revenue, profit };
     } catch (error) {
       console.error('Error getting today stats:', error);
-      return { transactions: 0, revenue: 0 };
+      return { transactions: 0, revenue: 0, profit: 0 };
     }
   }
 
-  async getWeekStats(): Promise<any> {
+  async getWeekStats(userRole?: string): Promise<any> {
     try {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       
       const { data: transactions, error } = await supabase
         .from('transactions')
-        .select('repair_cost')
-        .gte('created_at', weekAgo.toISOString());
+        .select('repair_cost, profit')
+        .gte('created_at', weekAgo.toISOString())
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       
-      const count = transactions.length;
-      const revenue = transactions.reduce((sum, t) => sum + (parseFloat(t.repair_cost) || 0), 0);
+      let filteredTransactions = transactions || [];
+      
+      // 🔒 ROLE-BASED FILTERING FOR STATS
+      if (userRole === 'worker') {
+        filteredTransactions = filteredTransactions.slice(0, 20);
+        console.log(`🚫 Worker role week stats - limited to ${filteredTransactions.length} transactions`);
+      } else {
+        console.log(`✅ Full access week stats - showing ${filteredTransactions.length} transactions`);
+      }
+      
+      const count = filteredTransactions.length;
+      const revenue = filteredTransactions.reduce((sum, t) => sum + (parseFloat(t.repair_cost) || 0), 0);
+      const profit = filteredTransactions.reduce((sum, t) => sum + (parseFloat(t.profit) || 0), 0);
 
-      return { transactions: count, revenue };
+      return { transactions: count, revenue, profit };
     } catch (error) {
       console.error('Error getting week stats:', error);
-      return { transactions: 0, revenue: 0 };
+      return { transactions: 0, revenue: 0, profit: 0 };
     }
   }
 
@@ -782,6 +806,38 @@ class DatabaseStorage {
       return data || [];
     } catch (error) {
       console.error('Error searching suppliers:', error);
+      return [];
+    }
+  }
+
+  async searchTransactions(query: string, userRole?: string): Promise<any[]> {
+    try {
+      if (!query) {
+        return [];
+      }
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .or(`customer_name.ilike.%${query}%,mobile_number.ilike.%${query}%,device_model.ilike.%${query}%,repair_type.ilike.%${query}%`)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      let transactions = data || [];
+      
+      // 🔒 ROLE-BASED SEARCH FILTERING
+      // Only worker users get restricted search results
+      if (userRole === 'worker') {
+        transactions = transactions.slice(0, 20); // Workers see latest 20 search results
+        console.log(`🚫 Worker role search - showing latest 20 results: ${transactions.length}`);
+      } else {
+        console.log(`✅ Full access search - showing all results: ${transactions.length} for role: ${userRole || 'guest'}`);
+      }
+      
+      return transactions;
+    } catch (error) {
+      console.error('Error searching transactions:', error);
       return [];
     }
   }
