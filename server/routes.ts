@@ -4,7 +4,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
 import { pool } from "./db";
 import type { Server as SocketIOServer } from "socket.io";
-import { requireAuth, requireRole, requireNotDemo } from './supabase-auth-middleware';
+import { requireAuth, requireRole, requireNotDemo, optionalAuth } from './supabase-auth-middleware';
 import { createClient } from '@supabase/supabase-js';
 import { 
   insertTransactionSchema, 
@@ -183,9 +183,12 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
     res.json({ success: true });
     io.emit('dataCleared', { success: true });
   });
-  app.get('/api/dashboard', async (req, res) => {
+  // Dashboard endpoint with role-based access control
+  app.get('/api/dashboard', optionalAuth, async (req, res) => {
     try {
-      console.log('📊 Dashboard endpoint called');
+      console.log('📊 Dashboard endpoint called by user:', req.user?.username || 'guest', 'role:', req.user?.role || 'none');
+      
+      const userRole = req.user?.role;
       
       // Add individual error handling for each method
       let totals = {};
@@ -193,8 +196,8 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
       let topSuppliers = [];
       
       try {
-        totals = await storage.getDashboardTotals();
-        console.log('✅ Dashboard totals fetched:', totals);
+        totals = await storage.getDashboardTotals(userRole);
+        console.log('✅ Dashboard totals fetched for role:', userRole);
       } catch (error) {
         console.error('❌ Dashboard totals error:', error);
         totals = { totalRevenue: 0, totalExpenses: 0, totalProfit: 0, totalSuppliers: 0, totalProducts: 0 };
@@ -216,8 +219,17 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
         topSuppliers = [];
       }
       
-      const response = { totals, recentTransactions, topSuppliers };
-      console.log('📤 Dashboard response ready:', Object.keys(response));
+      const response = { 
+        totals, 
+        recentTransactions, 
+        topSuppliers,
+        userInfo: {
+          username: req.user?.username || 'guest',
+          role: req.user?.role || 'none',
+          hasRestrictions: userRole === 'worker'
+        }
+      };
+      console.log('📤 Dashboard response ready for role:', userRole);
       res.json(response);
       
     } catch (error) {
@@ -362,11 +374,18 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
     }
   });
 
-  // Dashboard Totals Route (Alternative path for same data)
-  app.get('/api/dashboard/totals', async (req, res) => {
+  // Dashboard Totals Route with role-based access control
+  app.get('/api/dashboard/totals', optionalAuth, async (req, res) => {
     try {
-      const totals = await storage.getDashboardTotals();
-      res.json(totals);
+      const userRole = req.user?.role;
+      console.log('📊 Dashboard totals endpoint called by role:', userRole);
+      
+      const totals = await storage.getDashboardTotals(userRole);
+      res.json({
+        ...totals,
+        userRole: userRole || 'guest',
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
       console.error('Dashboard totals error:', error);
       res.status(500).json({ error: 'Failed to fetch dashboard totals' });
@@ -619,8 +638,12 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
   });
 
   // Get all transactions (with optional search/dateRange)
-  app.get("/api/transactions", async (req, res) => {
+  // Main transactions endpoint with role-based access control
+  app.get("/api/transactions", optionalAuth, async (req, res) => {
     try {
+      const userRole = req.user?.role;
+      console.log('📋 Transactions endpoint called by role:', userRole);
+      
       const limit = parseInt(req.query.limit as string) || 50;
       const offset = parseInt(req.query.offset as string) || 0;
       const search = req.query.search as string;

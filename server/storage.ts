@@ -94,7 +94,7 @@ class DatabaseStorage {
   }
 
   // Transaction methods
-  async getTransactions(): Promise<any[]> {
+  async getTransactions(userRole?: string): Promise<any[]> {
     try {
       const { data, error } = await supabase
         .from('transactions')
@@ -102,7 +102,20 @@ class DatabaseStorage {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      
+      let transactions = data || [];
+      
+      // 🔒 ROLE-BASED DATA FILTERING
+      // Only worker users get restricted data
+      // All other roles (admin, owner, user, demo) see full real data
+      if (userRole === 'worker') {
+        transactions = transactions.slice(0, 5); // Workers see only 5 most recent transactions
+        console.log(`🚫 Worker role - showing limited transactions: ${transactions.length}`);
+      } else {
+        console.log(`✅ Full access role - showing all transactions: ${transactions.length}`);
+      }
+      
+      return transactions;
     } catch (error) {
       console.error('Error getting transactions:', error);
       return [];
@@ -446,9 +459,9 @@ class DatabaseStorage {
   }
 
   // Dashboard methods
-  async getDashboardTotals(): Promise<any> {
+  async getDashboardTotals(userRole?: string): Promise<any> {
     try {
-      console.log('📊 Getting dashboard totals...');
+      console.log('📊 Getting dashboard totals for role:', userRole || 'no-role');
       
       // Use the same pattern as getTransactions (which works)
       const { data: transactions, error } = await supabase
@@ -461,21 +474,34 @@ class DatabaseStorage {
         throw error;
       }
 
-      const transactionList = transactions || [];
-      console.log(`Found ${transactionList.length} transactions for dashboard`);
+      let transactionList = transactions || [];
+      console.log(`Found ${transactionList.length} total transactions for dashboard`);
 
-      // Calculate totals
+      // 🔒 ROLE-BASED DATA FILTERING
+      // Only worker users get restricted data (limited/demo data)
+      // All other roles (admin, owner, user, demo) see full real data
+      if (userRole === 'worker') {
+        // Worker users see limited demo data only
+        transactionList = transactionList.slice(0, 3); // Only first 3 transactions
+        console.log(`🚫 Worker role detected - showing limited data: ${transactionList.length} transactions`);
+      } else {
+        // All other users (admin, owner, user, demo) see full real data
+        console.log(`✅ Full access role detected - showing all data: ${transactionList.length} transactions`);
+      }
+
+      // Calculate totals from filtered data
       let totalRevenue = 0;
       let totalProfit = 0;
       let completedCount = 0;
       let pendingCount = 0;
 
       transactionList.forEach(transaction => {
-        // Revenue from repair cost
+        // Revenue calculation: Total amount customer pays for repair
         const revenue = parseFloat(transaction.repair_cost) || 0;
         totalRevenue += revenue;
         
-        // Profit directly from the profit field
+        // Profit calculation: Already calculated profit from transaction.profit field
+        // Profit = Revenue (repair_cost) - Total Expenses (part_cost + labor_cost + overhead)
         const profit = parseFloat(transaction.profit) || 0;
         totalProfit += profit;
         
@@ -502,9 +528,13 @@ class DatabaseStorage {
         avgTransactionValue: transactionList.length > 0 ? totalRevenue / transactionList.length : 0,
         completedTransactions: completedCount,
         pendingTransactions: pendingCount,
+        // Add profit calculation explanation
+        profitMargin: totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0,
+        userRole: userRole || 'guest',
+        dataRestricted: userRole === 'worker'
       };
 
-      console.log('✅ Dashboard totals calculated:', result);
+      console.log('✅ Dashboard totals calculated for role', userRole, ':', result);
       return result;
 
     } catch (error) {
