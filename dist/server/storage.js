@@ -26,12 +26,13 @@ class DatabaseStorage {
         try {
             const { data, error } = await supabase
                 .from('users')
-                .select('id, username, password, role, shop_id, created_at')
+                .select('id, username, password_hash, role, shop_id, created_at')
                 .eq('username', username)
                 .single();
             if (error || !data)
                 return null;
-            return data;
+            const user = { ...data, password: data.password_hash };
+            return user;
         }
         catch (error) {
             console.error('Error getting user by username:', error);
