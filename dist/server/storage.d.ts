@@ -1,252 +1,72 @@
-export namespace storage {
-    function getUserByUsername(username: any): Promise<{
-        id: number;
-        username: any;
-        password: string;
-        role: string;
-        shop_id: string;
-    }>;
-    function getUserById(id: any): Promise<{
-        id: any;
-        username: string;
-        password: string;
-        role: string;
-        shop_id: string;
-    }>;
-    function createUser(data: any): Promise<any>;
-    function getAllUsers(): Promise<{
-        id: number;
-        username: string;
-        password: string;
-        role: string;
-        shop_id: string;
-    }[]>;
-    function updateUser(id: any, data: any): Promise<any>;
-    function deleteUser(): Promise<boolean>;
-    function getTransactions(limit?: number): Promise<{
-        id: number;
-        customerName: string;
-        mobileNumber: string;
-        deviceModel: string;
-        repairType: string;
-        repairCost: string;
-        amountGiven: string;
-        changeReturned: string;
-        paymentMethod: string;
-        status: string;
-        shop_id: string;
-        created_at: string;
-    }[]>;
-    function createTransaction(data: any): Promise<any>;
-    function searchTransactions(): Promise<{
-        id: number;
-        customerName: string;
-        mobileNumber: string;
-        deviceModel: string;
-        repairType: string;
-        repairCost: string;
-        amountGiven: string;
-        changeReturned: string;
-        paymentMethod: string;
-        status: string;
-        shop_id: string;
-        created_at: string;
-    }[]>;
-    function updateTransaction(id: any, data: any): Promise<any>;
-    function deleteTransaction(): Promise<boolean>;
-    function getSuppliers(limit?: number): Promise<{
-        id: number;
-        name: string;
-        contactNumber: string;
-        address: string;
-        shop_id: string;
-        created_at: string;
-    }[]>;
-    function createSupplier(data: any): Promise<any>;
-    function searchSuppliers(): Promise<{
-        id: number;
-        name: string;
-        contactNumber: string;
-        address: string;
-        shop_id: string;
-        created_at: string;
-    }[]>;
-    function updateSupplier(id: any, data: any): Promise<any>;
-    function deleteSupplier(): Promise<boolean>;
-    function getExpenditures(): Promise<{
-        id: number;
-        amount: string;
-        description: string;
-        category: string;
-        paymentMethod: string;
-        shop_id: string;
-        created_at: string;
-    }[]>;
-    function createExpenditure(data: any): Promise<any>;
-    function updateExpenditure(id: any, data: any): Promise<any>;
-    function deleteExpenditure(): Promise<boolean>;
-    function getGroupedExpenditures(): Promise<{
-        id: number;
-        providerName: string;
-        category: string;
-        totalAmount: string;
-        description: string;
-        status: string;
-        shop_id: string;
-        created_at: string;
-    }[]>;
-    function createGroupedExpenditure(data: any): Promise<any>;
-    function updateGroupedExpenditure(id: any, data: any): Promise<any>;
-    function deleteGroupedExpenditure(): Promise<boolean>;
-    function getBills(): Promise<any[]>;
-    function createBill(data: any): Promise<any>;
-    function getTodayStats(): Promise<{
-        totalRevenue: number;
-        totalTransactions: number;
-        revenue: number;
-        profit: number;
-    }>;
-    function getWeekStats(): Promise<{
-        totalRevenue: number;
-        totalTransactions: number;
-        revenue: number;
-        profit: number;
-    }>;
-    function getMonthStats(): Promise<{
-        totalRevenue: number;
-        totalTransactions: number;
-        revenue: number;
-        profit: number;
-    }>;
-    function getYearStats(): Promise<{
-        totalRevenue: number;
-        totalTransactions: number;
-        revenue: number;
-        profit: number;
-    }>;
-    function getDashboardTotals(): Promise<{
-        totalRevenue: number;
-        totalTransactions: number;
-        totalSuppliers: number;
-        totalExpenditures: number;
-        totalProfit: number;
-        totalCustomers: number;
-        totalBills: number;
-        totalInventory: number;
-        totalPurchaseOrders: number;
-    }>;
-    function getDashboardStats(): Promise<{
-        weekly: {
-            totalRevenue: number;
-            totalTransactions: number;
-        };
-        monthly: {
-            totalRevenue: number;
-            totalTransactions: number;
-        };
-        today: {
-            totalRevenue: number;
-            totalTransactions: number;
-        };
-    }>;
-    function getReports(): Promise<{
-        id: number;
-        name: string;
-        type: string;
-        created_at: string;
-    }[]>;
-    function getRecentTransactions(limit?: number): Promise<{
-        id: number;
-        customerName: string;
-        mobileNumber: string;
-        deviceModel: string;
-        repairType: string;
-        repairCost: string;
-        amountGiven: string;
-        changeReturned: string;
-        paymentMethod: string;
-        status: string;
-        shop_id: string;
-        created_at: string;
-    }[]>;
-    function getUserSettings(): Promise<{
-        theme: string;
-        notifications: boolean;
-    }>;
-    function getSettings(): Promise<{
-        theme: string;
-        notifications: boolean;
-    }[]>;
-    function getPermissions(): Promise<{
-        canCreate: boolean;
-        canEdit: boolean;
-        canView: boolean;
-    }>;
-    function getActivityLog(): Promise<any[]>;
-    function getNotifications(): Promise<any[]>;
-    function getPurchaseOrders(): Promise<any[]>;
-    function getSupplierPayments(): Promise<any[]>;
-    function getTransaction(): Promise<{
-        id: number;
-        customerName: string;
-        mobileNumber: string;
-        deviceModel: string;
-        repairType: string;
-        repairCost: string;
-        amountGiven: string;
-        changeReturned: string;
-        paymentMethod: string;
-        status: string;
-        shop_id: string;
-        created_at: string;
-    }>;
-    function getSupplier(): Promise<{
-        id: number;
-        name: string;
-        contactNumber: string;
-        address: string;
-        shop_id: string;
-        created_at: string;
-    }>;
-    function getExpenditure(): Promise<{
-        id: number;
-        amount: string;
-        description: string;
-        category: string;
-        paymentMethod: string;
-        shop_id: string;
-        created_at: string;
-    }>;
-    function getGroupedExpenditure(): Promise<{
-        id: number;
-        providerName: string;
-        category: string;
-        totalAmount: string;
-        description: string;
-        status: string;
-        shop_id: string;
-        created_at: string;
-    }>;
-    function getAllReports(): Promise<{
-        id: number;
-        name: string;
-        type: string;
-        status: string;
-        created_at: string;
-    }[]>;
-    function getAllPermissions(): Promise<{
-        id: number;
-        role: string;
-        resource: string;
-        action: string;
-        allowed: boolean;
-    }[]>;
-    function getReportsByDateRange(dateRange: any): Promise<{
-        id: number;
-        name: string;
-        type: string;
-        status: string;
-        created_at: string;
-    }[]>;
+import { type User, type InsertUser, type Transaction, type InsertTransaction, type Supplier, type InsertSupplier, type SupplierPayment, type InsertSupplierPayment } from "../shared/schema";
+declare class DatabaseStorage {
+    getUserByUsername(username: string): Promise<any | null>;
+    getUserById(id: number): Promise<User | null>;
+    createUser(data: InsertUser): Promise<User>;
+    getAllUsers(): Promise<User[]>;
+    createTransaction(data: InsertTransaction): Promise<Transaction>;
+    getTransaction(id: number): Promise<Transaction | null>;
+    getTransactions(limit?: number, offset?: number): Promise<Transaction[]>;
+    getTransactionsByDateRange(startDate: Date, endDate: Date): Promise<Transaction[]>;
+    updateTransaction(id: number, data: Partial<InsertTransaction>): Promise<Transaction | null>;
+    deleteTransaction(id: number): Promise<boolean>;
+    searchTransactionsByDateRange(startDate: string, endDate: string): Promise<Transaction[]>;
+    createSupplier(data: InsertSupplier): Promise<Supplier>;
+    getSupplier(id: number): Promise<Supplier | null>;
+    getSuppliers(limit?: number, offset?: number): Promise<Supplier[]>;
+    updateSupplier(id: number, data: Partial<InsertSupplier>): Promise<Supplier | null>;
+    deleteSupplier(id: number): Promise<boolean>;
+    createSupplierPayment(data: InsertSupplierPayment): Promise<SupplierPayment>;
+    getSupplierPayment(id: number): Promise<SupplierPayment | null>;
+    updateSupplierPayment(id: number, data: Partial<InsertSupplierPayment>): Promise<SupplierPayment | null>;
+    deleteSupplierPayment(id: number): Promise<boolean>;
+    getSupplierExpenditureSummary(): Promise<any[]>;
+    getBill(id: number): Promise<any | null>;
+    getBillsByDateRange(startDate: Date, endDate: Date): Promise<any[]>;
+    searchBills(query: string): Promise<any[]>;
+    updateBill(id: number, data: any): Promise<any | null>;
+    deleteBill(id: number): Promise<boolean>;
+    createNotification(data: any): Promise<any>;
+    markNotificationAsRead(id: number): Promise<any | null>;
+    deleteNotification(id: number): Promise<boolean>;
+    createInventoryItem(data: any): Promise<any>;
+    getInventoryItem(id: number): Promise<any | null>;
+    updateInventoryItem(id: number, data: any): Promise<any | null>;
+    deleteInventoryItem(id: number): Promise<boolean>;
+    searchInventoryItems(query: string): Promise<any[]>;
+    createPurchaseOrder(data: any): Promise<any>;
+    getPurchaseOrder(id: number): Promise<any | null>;
+    updatePurchaseOrder(id: number, data: any): Promise<any | null>;
+    deletePurchaseOrder(id: number): Promise<boolean>;
+    createSetting(data: any): Promise<any>;
+    getSettings(userId?: number): Promise<any[]>;
+    updateSetting(id: number, data: any): Promise<any | null>;
+    deleteSetting(id: number): Promise<boolean>;
+    createActivityLog(data: any): Promise<any>;
+    getActivityLogs(userId?: number): Promise<any[]>;
+    getExpenditure(id: number): Promise<any | null>;
+    createExpenditure(data: any): Promise<any>;
+    updateExpenditure(id: number, data: any): Promise<any | null>;
+    deleteExpenditure(id: number): Promise<boolean>;
+    getExpendituresByDateRangeForShop(shopId: string, startDate: Date, endDate: Date): Promise<any[]>;
+    getPermissions(role?: string): Promise<any[]>;
+    updatePermission(id: number, data: any): Promise<any | null>;
+    createGroupedExpenditure(data: any): Promise<any>;
+    getGroupedExpenditure(id: number): Promise<any>;
+    updateGroupedExpenditure(id: number, data: any): Promise<any>;
+    deleteGroupedExpenditure(id: number): Promise<boolean>;
+    getGroupedExpendituresByDateRange(startDate: Date, endDate: Date): Promise<any[]>;
+    searchGroupedExpenditures(search: string): Promise<any[]>;
+    createGroupedExpenditurePayment(data: any): Promise<any>;
+    getGroupedExpenditurePayments(groupedExpenditureId: number): Promise<any[]>;
+    deleteGroupedExpenditurePayment(id: number): Promise<boolean>;
+    createReport(data: any): Promise<any>;
+    getReports(startDate?: string, endDate?: string): Promise<any>;
+    getReport(id: number): Promise<any | null>;
+    updateReport(id: number, data: any): Promise<any | null>;
+    deleteReport(id: number): Promise<boolean>;
 }
+export declare function ensureDefaultUser(username: string, password: string, role: string): Promise<void>;
+export declare const storage: DatabaseStorage;
+export default storage;
 //# sourceMappingURL=storage.d.ts.map

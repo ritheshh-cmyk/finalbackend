@@ -185,13 +185,48 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
   });
   app.get('/api/dashboard', async (req, res) => {
     try {
-      // Example: Fetch summary data for dashboard widgets
-      const totals = await storage.getDashboardTotals(); // Implement this in storage if missing
-      const recentTransactions = await storage.getRecentTransactions(5);
-      const topSuppliers = await storage.getTopSuppliers(5);
-      res.json({ totals, recentTransactions, topSuppliers });
+      console.log('📊 Dashboard endpoint called');
+      
+      // Add individual error handling for each method
+      let totals = {};
+      let recentTransactions = [];
+      let topSuppliers = [];
+      
+      try {
+        totals = await storage.getDashboardTotals();
+        console.log('✅ Dashboard totals fetched:', totals);
+      } catch (error) {
+        console.error('❌ Dashboard totals error:', error);
+        totals = { totalRevenue: 0, totalExpenses: 0, totalProfit: 0, totalSuppliers: 0, totalProducts: 0 };
+      }
+      
+      try {
+        recentTransactions = await storage.getRecentTransactions(5);
+        console.log('✅ Recent transactions fetched:', recentTransactions.length);
+      } catch (error) {
+        console.error('❌ Recent transactions error:', error);
+        recentTransactions = [];
+      }
+      
+      try {
+        topSuppliers = await storage.getTopSuppliers(5);
+        console.log('✅ Top suppliers fetched:', topSuppliers.length);
+      } catch (error) {
+        console.error('❌ Top suppliers error:', error);
+        topSuppliers = [];
+      }
+      
+      const response = { totals, recentTransactions, topSuppliers };
+      console.log('📤 Dashboard response ready:', Object.keys(response));
+      res.json(response);
+      
     } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch dashboard data' });
+      console.error('❌ Dashboard endpoint error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch dashboard data',
+        details: error.message,
+        timestamp: new Date().toISOString()
+      });
     }
   });
 
@@ -205,6 +240,125 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
     } catch (error) {
       console.error('Dashboard stats error:', error);
       res.status(500).json({ error: 'Failed to fetch dashboard stats' });
+    }
+  });
+
+  // NEWLY ADDED: Weekly Statistics Endpoint
+  app.get('/api/stats/weekly', async (req, res) => {
+    try {
+      console.log('📊 Getting weekly statistics...');
+      
+      // Get all transactions
+      const transactions = await storage.getAllTransactions(1000, 0);
+      
+      // Calculate daily stats for last 7 days
+      const dailyStats = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateString = date.toISOString().split('T')[0];
+        
+        const dayTransactions = transactions.filter(t => 
+          t.created_at && t.created_at.startsWith(dateString)
+        );
+        
+        const dayRevenue = dayTransactions.reduce((sum, t) => 
+          sum + (parseInt(t.repair_cost) || 0), 0
+        );
+        
+        dailyStats.push({
+          date: dateString,
+          revenue: dayRevenue,
+          transactions: dayTransactions.length,
+          day: date.toLocaleDateString('en-US', { weekday: 'short' })
+        });
+      }
+      
+      const totalWeekRevenue = dailyStats.reduce((sum, day) => sum + day.revenue, 0);
+      const totalWeekTransactions = dailyStats.reduce((sum, day) => sum + day.transactions, 0);
+      
+      res.json({
+        success: true,
+        data: {
+          dailyStats,
+          totalWeekRevenue,
+          totalWeekTransactions,
+          period: '7 days'
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ Weekly stats error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch weekly statistics',
+        details: error.message
+      });
+    }
+  });
+
+  // NEWLY ADDED: Customer Analytics Endpoint
+  app.get('/api/analytics/customers', async (req, res) => {
+    try {
+      console.log('👥 Getting customer analytics...');
+      
+      const transactions = await storage.getAllTransactions(1000, 0);
+      
+      // Group by customer and calculate stats
+      const customerMap = new Map();
+      
+      transactions.forEach(transaction => {
+        const customerName = transaction.customer_name || 'Unknown Customer';
+        const amount = parseInt(transaction.repair_cost) || 0;
+        const mobile = transaction.mobile_number || '';
+        
+        if (customerMap.has(customerName)) {
+          const existing = customerMap.get(customerName);
+          customerMap.set(customerName, {
+            name: customerName,
+            mobile: mobile || existing.mobile,
+            totalSpent: existing.totalSpent + amount,
+            transactionCount: existing.transactionCount + 1,
+            lastVisit: transaction.created_at || existing.lastVisit,
+            averageSpending: Math.round((existing.totalSpent + amount) / (existing.transactionCount + 1))
+          });
+        } else {
+          customerMap.set(customerName, {
+            name: customerName,
+            mobile: mobile,
+            totalSpent: amount,
+            transactionCount: 1,
+            lastVisit: transaction.created_at,
+            averageSpending: amount
+          });
+        }
+      });
+      
+      // Convert to array and sort by total spent
+      const customers = Array.from(customerMap.values())
+        .sort((a, b) => b.totalSpent - a.totalSpent);
+      
+      const topCustomers = customers.slice(0, 10);
+      const totalRevenue = customers.reduce((sum, c) => sum + c.totalSpent, 0);
+      
+      res.json({
+        success: true,
+        data: {
+          customers: topCustomers,
+          totalCustomers: customers.length,
+          totalRevenue,
+          topCustomer: customers[0] || null,
+          averageSpendPerCustomer: Math.round(totalRevenue / customers.length) || 0
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ Customer analytics error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch customer analytics',
+        details: error.message
+      });
     }
   });
 
