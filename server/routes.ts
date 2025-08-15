@@ -735,20 +735,34 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
   });
 
   // Update a transaction by ID
-  app.put("/api/transactions/:id", requireNotDemo, async (req, res) => {
+  // Update a transaction by ID with worker 24-hour restriction
+  app.put("/api/transactions/:id", requireAuth, requireNotDemo, async (req, res) => {
       try {
         const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ message: "Invalid transaction ID" });
+        const userRole = req.user?.role;
+        
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid transaction ID" });
+        
         const validatedData = insertTransactionSchema.partial().parse(req.body);
-        const transaction = await storage.updateTransaction(id, validatedData);
+        const transaction = await storage.updateTransaction(id, validatedData, userRole);
+        
         if (!transaction) {
           return res.status(404).json({ message: "Transaction not found" });
         }
+        
         res.json({ success: true, data: transaction, message: 'Transaction updated successfully' });
         io.emit("transactionUpdated", transaction);
       } catch (error) {
         if (error instanceof z.ZodError) {
           res.status(400).json({ success: false, error: 'Validation error', details: error.errors });
+        } else if (error.message && error.message.includes('24 hours')) {
+          // Special handling for worker 24-hour restriction
+          res.status(403).json({ 
+            success: false, 
+            error: 'Time restriction', 
+            message: 'Worker users can only edit transactions within 24 hours of creation',
+            details: error.message 
+          });
         } else {
           res.status(500).json({ success: false, error: 'Failed to update transaction', details: error?.message || error });
         }
@@ -756,19 +770,34 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
       }
   });
 
-  // Delete a transaction by ID
-  app.delete("/api/transactions/:id", requireNotDemo, async (req, res) => {
+  // Delete a transaction by ID with worker 24-hour restriction
+  app.delete("/api/transactions/:id", requireAuth, requireNotDemo, async (req, res) => {
       try {
         const id = parseInt(req.params.id);
-      if (isNaN(id)) return res.status(400).json({ message: "Invalid transaction ID" });
-        const success = await storage.deleteTransaction(id);
+        const userRole = req.user?.role;
+        
+        if (isNaN(id)) return res.status(400).json({ message: "Invalid transaction ID" });
+        
+        const success = await storage.deleteTransaction(id, userRole);
+        
         if (!success) {
           return res.status(404).json({ message: "Transaction not found" });
         }
+        
         res.json({ success: true, message: "Transaction deleted successfully" });
         io.emit("transactionDeleted", id);
       } catch (error) {
-        res.status(500).json({ success: false, error: 'Failed to delete transaction', details: error?.message || error });
+        if (error.message && error.message.includes('24 hours')) {
+          // Special handling for worker 24-hour restriction
+          res.status(403).json({ 
+            success: false, 
+            error: 'Time restriction', 
+            message: 'Worker users can only delete transactions within 24 hours of creation',
+            details: error.message 
+          });
+        } else {
+          res.status(500).json({ success: false, error: 'Failed to delete transaction', details: error?.message || error });
+        }
         io.emit('error', { type: 'transaction', message: 'Failed to delete transaction', details: error?.message || error });
       }
   });

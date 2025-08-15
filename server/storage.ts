@@ -5,6 +5,27 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+/**
+ * Helper function to check if a transaction is older than 24 hours
+ * Used for worker role edit/delete restrictions
+ */
+function isTransactionOlderThan24Hours(createdAt: string): boolean {
+  const transactionDate = new Date(createdAt);
+  const now = new Date();
+  const diffInHours = (now.getTime() - transactionDate.getTime()) / (1000 * 60 * 60);
+  return diffInHours > 24;
+}
+
+/**
+ * Check if worker user can edit/delete a transaction (must be within 24 hours)
+ */
+function canWorkerModifyTransaction(userRole: string, transactionCreatedAt: string): boolean {
+  if (userRole !== 'worker') {
+    return true; // Non-worker users can always modify
+  }
+  return !isTransactionOlderThan24Hours(transactionCreatedAt);
+}
+
 // Types
 interface User {
   id: number;
@@ -109,8 +130,8 @@ class DatabaseStorage {
       // Only worker users get restricted data
       // All other roles (admin, owner, user, demo) see full real data
       if (userRole === 'worker') {
-        transactions = transactions.slice(0, 5); // Workers see only 5 most recent transactions
-        console.log(`🚫 Worker role - showing limited transactions: ${transactions.length}`);
+        transactions = transactions.slice(0, 20); // Workers see latest 20 transactions
+        console.log(`🚫 Worker role - showing latest 20 transactions: ${transactions.length}`);
       } else {
         console.log(`✅ Full access role - showing all transactions: ${transactions.length}`);
       }
@@ -163,6 +184,110 @@ class DatabaseStorage {
       return data;
     } catch (error) {
       console.error('Error creating transaction:', error);
+      throw error;
+    }
+  }
+
+  async updateTransaction(id: number, transactionData: any, userRole?: string): Promise<any> {
+    try {
+      // First, get the existing transaction to check creation time for worker restrictions
+      const { data: existingTransaction, error: fetchError } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching transaction for update:', fetchError);
+        throw fetchError;
+      }
+
+      if (!existingTransaction) {
+        throw new Error('Transaction not found');
+      }
+
+      // Check if worker user can modify this transaction (24-hour rule)
+      if (!canWorkerModifyTransaction(userRole || '', existingTransaction.created_at)) {
+        throw new Error('Worker users can only edit transactions within 24 hours of creation');
+      }
+
+      // If we have partsCost in the update data, calculate new profit
+      if (transactionData.partsCost !== undefined || 
+          transactionData.repair_cost !== undefined ||
+          transactionData.internalCost !== undefined ||
+          transactionData.externalItemCost !== undefined) {
+        
+        const externalCost = transactionData.externalItemCost || existingTransaction.external_item_cost || 0;
+        const internalCost = transactionData.internalCost || existingTransaction.internal_cost || 0;
+        const repairCost = transactionData.repair_cost || existingTransaction.repair_cost || 0;
+        
+        let partsCost = 0;
+        if (transactionData.partsCost !== undefined) {
+          if (Array.isArray(transactionData.partsCost)) {
+            partsCost = transactionData.partsCost.reduce((total, part) => total + (part.cost || 0), 0);
+          } else {
+            partsCost = parseFloat(transactionData.partsCost) || 0;
+          }
+        } else {
+          partsCost = existingTransaction.parts_cost || 0;
+        }
+
+        const totalExpenses = externalCost + internalCost + partsCost;
+        const calculatedProfit = repairCost - totalExpenses;
+        
+        transactionData.profit = calculatedProfit;
+        console.log(`💰 Updated profit calculation: ₹${repairCost} - ₹${totalExpenses} = ₹${calculatedProfit}`);
+      }
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .update(transactionData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      console.log('✅ Transaction updated successfully');
+      return data;
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      throw error;
+    }
+  }
+
+  async deleteTransaction(id: number, userRole?: string): Promise<boolean> {
+    try {
+      // First, get the existing transaction to check creation time for worker restrictions
+      const { data: existingTransaction, error: fetchError } = await supabase
+        .from('transactions')
+        .select('created_at')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching transaction for deletion:', fetchError);
+        throw fetchError;
+      }
+
+      if (!existingTransaction) {
+        throw new Error('Transaction not found');
+      }
+
+      // Check if worker user can delete this transaction (24-hour rule)
+      if (!canWorkerModifyTransaction(userRole || '', existingTransaction.created_at)) {
+        throw new Error('Worker users can only delete transactions within 24 hours of creation');
+      }
+
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      console.log('✅ Transaction deleted successfully');
+      return true;
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
       throw error;
     }
   }
@@ -481,9 +606,9 @@ class DatabaseStorage {
       // Only worker users get restricted data (limited/demo data)
       // All other roles (admin, owner, user, demo) see full real data
       if (userRole === 'worker') {
-        // Worker users see limited demo data only
-        transactionList = transactionList.slice(0, 3); // Only first 3 transactions
-        console.log(`🚫 Worker role detected - showing limited data: ${transactionList.length} transactions`);
+        // Worker users see latest 20 transactions only
+        transactionList = transactionList.slice(0, 20); // Only latest 20 transactions
+        console.log(`🚫 Worker role detected - showing latest 20 transactions: ${transactionList.length} transactions`);
       } else {
         // All other users (admin, owner, user, demo) see full real data
         console.log(`✅ Full access role detected - showing all data: ${transactionList.length} transactions`);
@@ -662,5 +787,8 @@ class DatabaseStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new Storage();
+
+// Export helper functions for worker time restrictions
+export { isTransactionOlderThan24Hours, canWorkerModifyTransaction };
 export default storage;
