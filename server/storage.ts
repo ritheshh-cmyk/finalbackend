@@ -440,7 +440,7 @@ class DatabaseStorage {
 
   // Dashboard methods
   async getDashboardTotals(): Promise<any> {
-    console.log('🔍 Starting getDashboardTotals...');
+    console.log('🔍 Starting getDashboardTotals v2.0 - Aug 16 2025...');
     
     try {
       // Get data with individual error handling instead of Promise.all()
