@@ -32,12 +32,13 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
       const result = await pool.query('SELECT NOW() as current_time');
       res.json({ 
         status: 'OK', 
-        message: 'Mobile Repair Tracker Backend is running with Supabase Auth', 
+        message: 'Mobile Repair Tracker Backend is running with Supabase Auth - FIXED VERSION', 
         timestamp: new Date().toISOString(), 
         port: process.env.PORT || 10000,
         database: 'connected',
         dbTime: result.rows[0]?.current_time,
-        auth: 'supabase'
+        auth: 'supabase',
+        version: '2.0.1-dashboard-fix'
       });
     } catch (error) {
       console.error('❌ Health check failed:', error.message);
