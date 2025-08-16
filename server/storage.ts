@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-// ✅ FIXED: Use the same Supabase credentials as the working routes.ts debug endpoint
-const supabaseUrl = process.env.SUPABASE_URL || 'https://pxvtfywumekpdtablcjq.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4dnRmeXd1bWVrcGR0YWJsY2pxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNDkzNzQzMiwiZXhwIjoyMDUwNTEzNDMyfQ.AqxnCHmKHtjr2rHSMBqLjFLGnTUGhFgRGLNvDfMlWpY';
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+// ✅ FIXED: Use exact same pattern as working routes.ts debug endpoint  
+const supabase = createClient(
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+);
 
 /**
  * Helper function to check if a transaction is older than 24 hours
