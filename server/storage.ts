@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://rlmebwbzqmoxqevmzddp.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsbWVid2J6cW1veHFldm16ZGRwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNDE5NzM2MSwiZXhwIjoyMDQ5NzczMzYxfQ.PHiTjWy28shQ6JZHGMctkKilb_p7_j2mH6TT4oe8Cso';
+// ✅ FIXED: Use the same Supabase credentials as the working routes.ts debug endpoint
+const supabaseUrl = process.env.SUPABASE_URL || 'https://pxvtfywumekpdtablcjq.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4dnRmeXd1bWVrcGR0YWJsY2pxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNDkzNzQzMiwiZXhwIjoyMDUwNTEzNDMyfQ.AqxnCHmKHtjr2rHSMBqLjFLGnTUGhFgRGLNvDfMlWpY';
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
