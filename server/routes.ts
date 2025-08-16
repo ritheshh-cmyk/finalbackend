@@ -1,7 +1,7 @@
 // @ts-nocheck
 import type { Express, RequestHandler } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage.js";
+import { storage } from "./storage";
 import { pool } from "./db";
 import type { Server as SocketIOServer } from "socket.io";
 import { requireAuth, requireRole, requireNotDemo, optionalAuth } from './supabase-auth-middleware';
