@@ -1,16 +1,20 @@
-import winston from 'winston';
-
-const logger = winston.createLogger({
+// Simple console-based logger replacement to avoid winston dependency issues
+const logger = {
   level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
-  transports: [
-    new winston.transports.Console(),
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
-  ],
-});
+  createLogger: () => logger,
+  format: {
+    combine: () => {},
+    timestamp: () => {},
+    json: () => {}
+  },
+  transports: {
+    Console: class {},
+    File: class {}
+  },
+  info: (message: string, ...args: any[]) => console.log(`[${new Date().toISOString()}] [INFO]`, message, ...args),
+  error: (message: string, ...args: any[]) => console.error(`[${new Date().toISOString()}] [ERROR]`, message, ...args),
+  warn: (message: string, ...args: any[]) => console.warn(`[${new Date().toISOString()}] [WARN]`, message, ...args),
+  debug: (message: string, ...args: any[]) => console.log(`[${new Date().toISOString()}] [DEBUG]`, message, ...args)
+};
 
 export default logger; 

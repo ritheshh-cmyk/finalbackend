@@ -43,6 +43,117 @@ async function registerRoutes(app, io) {
     app.get('/api/version', (req, res) => {
         res.json({ version: '1.0.0', name: 'Mobile Repair Tracker Backend' });
     });
+    app.get('/api/dashboard', supabase_auth_middleware_1.optionalAuth, async (req, res) => {
+        try {
+            console.log('📊 Dashboard endpoint called by user:', req.user?.username || 'guest', 'role:', req.user?.role || 'none');
+            const userRole = req.user?.role;
+            let totals = {};
+            let recentTransactions = [];
+            let topSuppliers = [];
+            try {
+                totals = await storage_js_1.storage.getDashboardTotals(userRole);
+                console.log('✅ Dashboard totals fetched for role:', userRole);
+            }
+            catch (error) {
+                console.error('❌ Dashboard totals error:', error);
+                totals = { totalRevenue: 0, totalExpenses: 0, totalProfit: 0, totalSuppliers: 0, totalProducts: 0 };
+            }
+            try {
+                recentTransactions = await storage_js_1.storage.getRecentTransactions(5);
+                console.log('✅ Recent transactions fetched:', recentTransactions.length);
+            }
+            catch (error) {
+                console.error('❌ Recent transactions error:', error);
+                recentTransactions = [];
+            }
+            try {
+                topSuppliers = await storage_js_1.storage.getTopSuppliers(5);
+                console.log('✅ Top suppliers fetched:', topSuppliers.length);
+            }
+            catch (error) {
+                console.error('❌ Top suppliers error:', error);
+                topSuppliers = [];
+            }
+            const response = {
+                totals,
+                recentTransactions,
+                topSuppliers,
+                userInfo: {
+                    username: req.user?.username || 'guest',
+                    role: req.user?.role || 'none',
+                    hasRestrictions: userRole === 'worker'
+                }
+            };
+            console.log('📤 Dashboard response ready for role:', userRole);
+            res.json(response);
+        }
+        catch (error) {
+            console.error('❌ Dashboard endpoint error:', error);
+            res.status(500).json({
+                error: 'Failed to fetch dashboard data',
+                details: error.message,
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+    app.get('/api/dashboard/stats', supabase_auth_middleware_1.optionalAuth, async (req, res) => {
+        try {
+            const userRole = req.user?.role;
+            console.log(`📊 Dashboard stats requested by role: ${userRole || 'guest'}`);
+            const totals = await storage_js_1.storage.getDashboardTotals(userRole);
+            const todayStats = await storage_js_1.storage.getTodayStats(userRole);
+            const weekStats = await storage_js_1.storage.getWeekStats(userRole);
+            res.json({
+                totals,
+                today: todayStats,
+                week: weekStats,
+                userRole: userRole || 'guest',
+                fullAccess: userRole !== 'worker'
+            });
+        }
+        catch (error) {
+            console.error('Dashboard stats error:', error);
+            res.status(500).json({ error: 'Failed to fetch dashboard stats' });
+        }
+    });
+    app.get('/api/dashboard/totals', supabase_auth_middleware_1.optionalAuth, async (req, res) => {
+        try {
+            const userRole = req.user?.role;
+            console.log('📊 Dashboard totals endpoint called by role:', userRole);
+            const totals = await storage_js_1.storage.getDashboardTotals(userRole);
+            res.json({
+                ...totals,
+                userRole: userRole || 'guest',
+                timestamp: new Date().toISOString()
+            });
+        }
+        catch (error) {
+            console.error('Dashboard totals error:', error);
+            res.status(500).json({ error: 'Failed to fetch dashboard totals' });
+        }
+    });
+    app.get('/api/dashboard/recent-transactions', async (req, res) => {
+        try {
+            const limit = parseInt(req.query.limit) || 5;
+            const transactions = await storage_js_1.storage.getRecentTransactions(limit);
+            res.json(transactions);
+        }
+        catch (error) {
+            console.error('Recent transactions error:', error);
+            res.status(500).json({ error: 'Failed to fetch recent transactions' });
+        }
+    });
+    app.get('/api/dashboard/top-suppliers', async (req, res) => {
+        try {
+            const limit = parseInt(req.query.limit) || 5;
+            const suppliers = await storage_js_1.storage.getTopSuppliers(limit);
+            res.json(suppliers);
+        }
+        catch (error) {
+            console.error('Top suppliers error:', error);
+            res.status(500).json({ error: 'Failed to fetch top suppliers' });
+        }
+    });
     app.use(supabase_auth_middleware_1.requireAuth);
     app.get('/api/notifications', async (req, res) => {
         try {
@@ -154,15 +265,16 @@ async function registerRoutes(app, io) {
         res.json({ success: true });
         io.emit('dataCleared', { success: true });
     });
-    app.get('/api/dashboard', async (req, res) => {
+    app.get('/api/dashboard', supabase_auth_middleware_1.optionalAuth, async (req, res) => {
         try {
-            console.log('📊 Dashboard endpoint called');
+            console.log('📊 Dashboard endpoint called by user:', req.user?.username || 'guest', 'role:', req.user?.role || 'none');
+            const userRole = req.user?.role;
             let totals = {};
             let recentTransactions = [];
             let topSuppliers = [];
             try {
-                totals = await storage_js_1.storage.getDashboardTotals();
-                console.log('✅ Dashboard totals fetched:', totals);
+                totals = await storage_js_1.storage.getDashboardTotals(userRole);
+                console.log('✅ Dashboard totals fetched for role:', userRole);
             }
             catch (error) {
                 console.error('❌ Dashboard totals error:', error);
@@ -184,8 +296,17 @@ async function registerRoutes(app, io) {
                 console.error('❌ Top suppliers error:', error);
                 topSuppliers = [];
             }
-            const response = { totals, recentTransactions, topSuppliers };
-            console.log('📤 Dashboard response ready:', Object.keys(response));
+            const response = {
+                totals,
+                recentTransactions,
+                topSuppliers,
+                userInfo: {
+                    username: req.user?.username || 'guest',
+                    role: req.user?.role || 'none',
+                    hasRestrictions: userRole === 'worker'
+                }
+            };
+            console.log('📤 Dashboard response ready for role:', userRole);
             res.json(response);
         }
         catch (error) {
@@ -195,18 +316,6 @@ async function registerRoutes(app, io) {
                 details: error.message,
                 timestamp: new Date().toISOString()
             });
-        }
-    });
-    app.get('/api/dashboard/stats', async (req, res) => {
-        try {
-            const totals = await storage_js_1.storage.getDashboardTotals();
-            const todayStats = await storage_js_1.storage.getTodayStats();
-            const weekStats = await storage_js_1.storage.getWeekStats();
-            res.json({ totals, today: todayStats, week: weekStats });
-        }
-        catch (error) {
-            console.error('Dashboard stats error:', error);
-            res.status(500).json({ error: 'Failed to fetch dashboard stats' });
         }
     });
     app.get('/api/stats/weekly', async (req, res) => {
@@ -301,27 +410,6 @@ async function registerRoutes(app, io) {
                 error: 'Failed to fetch customer analytics',
                 details: error.message
             });
-        }
-    });
-    app.get('/api/dashboard/totals', async (req, res) => {
-        try {
-            const totals = await storage_js_1.storage.getDashboardTotals();
-            res.json(totals);
-        }
-        catch (error) {
-            console.error('Dashboard totals error:', error);
-            res.status(500).json({ error: 'Failed to fetch dashboard totals' });
-        }
-    });
-    app.get('/api/dashboard/recent-transactions', async (req, res) => {
-        try {
-            const limit = parseInt(req.query.limit) || 5;
-            const recentTransactions = await storage_js_1.storage.getRecentTransactions(limit);
-            res.json(recentTransactions);
-        }
-        catch (error) {
-            console.error('Recent transactions error:', error);
-            res.status(500).json({ error: 'Failed to fetch recent transactions' });
         }
     });
     app.get('/api/reports', async (req, res) => {
@@ -547,8 +635,10 @@ async function registerRoutes(app, io) {
             }
         }
     });
-    app.get("/api/transactions", async (req, res) => {
+    app.get("/api/transactions", supabase_auth_middleware_1.optionalAuth, async (req, res) => {
         try {
+            const userRole = req.user?.role;
+            console.log('📋 Transactions endpoint called by role:', userRole);
             const limit = parseInt(req.query.limit) || 50;
             const offset = parseInt(req.query.offset) || 0;
             const search = req.query.search;
@@ -594,22 +684,22 @@ async function registerRoutes(app, io) {
             res.status(500).json({ message: "Failed to fetch transactions" });
         }
     });
-    app.get("/api/transactions/search", async (req, res) => {
+    app.get("/api/transactions/search", supabase_auth_middleware_1.optionalAuth, async (req, res) => {
         try {
             const q = req.query.q;
+            const userRole = req.user?.role;
             if (!q) {
                 return res.status(400).json({ message: "Search query parameter 'q' is required" });
             }
-            const { data: transactions, error } = await supabase
-                .from('transactions')
-                .select('*')
-                .ilike('customer_name', `%${q}%`)
-                .order('created_at', { ascending: false });
-            if (error) {
-                console.error('Transaction search error:', error);
-                return res.status(500).json({ message: "Failed to search transactions" });
-            }
-            res.json(transactions || []);
+            console.log(`🔍 Transaction search by role: ${userRole || 'guest'}, query: "${q}"`);
+            const transactions = await storage_js_1.storage.searchTransactions(q, userRole);
+            res.json({
+                results: transactions,
+                total: transactions.length,
+                userRole: userRole || 'guest',
+                query: q,
+                restricted: userRole === 'worker'
+            });
         }
         catch (error) {
             console.error('Transaction search route error:', error);
@@ -631,13 +721,14 @@ async function registerRoutes(app, io) {
             res.status(500).json({ message: "Failed to fetch transaction" });
         }
     });
-    app.put("/api/transactions/:id", supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
+    app.put("/api/transactions/:id", supabase_auth_middleware_1.requireAuth, supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
             const id = parseInt(req.params.id);
+            const userRole = req.user?.role;
             if (isNaN(id))
                 return res.status(400).json({ message: "Invalid transaction ID" });
             const validatedData = schema_1.insertTransactionSchema.partial().parse(req.body);
-            const transaction = await storage_js_1.storage.updateTransaction(id, validatedData);
+            const transaction = await storage_js_1.storage.updateTransaction(id, validatedData, userRole);
             if (!transaction) {
                 return res.status(404).json({ message: "Transaction not found" });
             }
@@ -648,18 +739,27 @@ async function registerRoutes(app, io) {
             if (error instanceof zod_1.z.ZodError) {
                 res.status(400).json({ success: false, error: 'Validation error', details: error.errors });
             }
+            else if (error.message && error.message.includes('24 hours')) {
+                res.status(403).json({
+                    success: false,
+                    error: 'Time restriction',
+                    message: 'Worker users can only edit transactions within 24 hours of creation',
+                    details: error.message
+                });
+            }
             else {
                 res.status(500).json({ success: false, error: 'Failed to update transaction', details: error?.message || error });
             }
             io.emit('error', { type: 'transaction', message: 'Failed to update transaction', details: error?.message || error });
         }
     });
-    app.delete("/api/transactions/:id", supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
+    app.delete("/api/transactions/:id", supabase_auth_middleware_1.requireAuth, supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
             const id = parseInt(req.params.id);
+            const userRole = req.user?.role;
             if (isNaN(id))
                 return res.status(400).json({ message: "Invalid transaction ID" });
-            const success = await storage_js_1.storage.deleteTransaction(id);
+            const success = await storage_js_1.storage.deleteTransaction(id, userRole);
             if (!success) {
                 return res.status(404).json({ message: "Transaction not found" });
             }
@@ -667,7 +767,17 @@ async function registerRoutes(app, io) {
             io.emit("transactionDeleted", id);
         }
         catch (error) {
-            res.status(500).json({ success: false, error: 'Failed to delete transaction', details: error?.message || error });
+            if (error.message && error.message.includes('24 hours')) {
+                res.status(403).json({
+                    success: false,
+                    error: 'Time restriction',
+                    message: 'Worker users can only delete transactions within 24 hours of creation',
+                    details: error.message
+                });
+            }
+            else {
+                res.status(500).json({ success: false, error: 'Failed to delete transaction', details: error?.message || error });
+            }
             io.emit('error', { type: 'transaction', message: 'Failed to delete transaction', details: error?.message || error });
         }
     });
@@ -1868,17 +1978,6 @@ async function registerRoutes(app, io) {
             res.status(500).json({ error: 'Failed to fetch recent transactions' });
         }
     });
-    app.get('/api/dashboard/top-suppliers', async (req, res) => {
-        try {
-            const limit = parseInt(req.query.limit) || 5;
-            const suppliers = await storage_js_1.storage.getTopSuppliers(limit);
-            res.json(suppliers);
-        }
-        catch (error) {
-            console.error('Top suppliers error:', error);
-            res.status(500).json({ error: 'Failed to fetch top suppliers' });
-        }
-    });
     app.get('/api/user-settings', async (req, res) => {
         try {
             const userId = req.user?.id;
@@ -1893,22 +1992,37 @@ async function registerRoutes(app, io) {
             res.status(500).json({ error: 'Failed to fetch user settings' });
         }
     });
-    app.get('/api/search/transactions', async (req, res) => {
+    app.get('/api/search/transactions', supabase_auth_middleware_1.optionalAuth, async (req, res) => {
         try {
             const q = req.query.q || '';
-            const results = await storage_js_1.storage.searchTransactions(q);
-            res.json(results);
+            const userRole = req.user?.role;
+            console.log(`🔍 Search transactions by role: ${userRole || 'guest'}, query: "${q}"`);
+            const results = await storage_js_1.storage.searchTransactions(q, userRole);
+            res.json({
+                results: results,
+                total: results.length,
+                userRole: userRole || 'guest',
+                query: q,
+                restricted: userRole === 'worker'
+            });
         }
         catch (error) {
             console.error('Search transactions error:', error);
             res.status(500).json({ error: 'Failed to search transactions' });
         }
     });
-    app.get('/api/search/suppliers', async (req, res) => {
+    app.get('/api/search/suppliers', supabase_auth_middleware_1.optionalAuth, async (req, res) => {
         try {
             const q = req.query.q || '';
+            const userRole = req.user?.role;
+            console.log(`🔍 Search suppliers by role: ${userRole || 'guest'}, query: "${q}"`);
             const results = await storage_js_1.storage.searchSuppliers(q);
-            res.json(results);
+            res.json({
+                results: results,
+                total: results.length,
+                userRole: userRole || 'guest',
+                query: q
+            });
         }
         catch (error) {
             console.error('Search suppliers error:', error);

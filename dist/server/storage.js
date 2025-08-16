@@ -1,10 +1,24 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.storage = void 0;
+exports.isTransactionOlderThan24Hours = isTransactionOlderThan24Hours;
+exports.canWorkerModifyTransaction = canWorkerModifyTransaction;
 const supabase_js_1 = require("@supabase/supabase-js");
 const supabaseUrl = 'https://rlmebwbzqmoxqevmzddp.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsbWVid2J6cW1veHFldm16ZGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQxOTczNjEsImV4cCI6MjA0OTc3MzM2MX0.fQnEzf1r8PpAOqTmBsVULIyLBvGFbC1SU1VJOKhW_J8';
 const supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey);
+function isTransactionOlderThan24Hours(createdAt) {
+    const transactionDate = new Date(createdAt);
+    const now = new Date();
+    const diffInHours = (now.getTime() - transactionDate.getTime()) / (1000 * 60 * 60);
+    return diffInHours > 24;
+}
+function canWorkerModifyTransaction(userRole, transactionCreatedAt) {
+    if (userRole !== 'worker') {
+        return true;
+    }
+    return !isTransactionOlderThan24Hours(transactionCreatedAt);
+}
 class DatabaseStorage {
     async getUserById(id) {
         try {
@@ -74,7 +88,7 @@ class DatabaseStorage {
             return null;
         }
     }
-    async getTransactions() {
+    async getTransactions(userRole) {
         try {
             const { data, error } = await supabase
                 .from('transactions')
@@ -82,7 +96,15 @@ class DatabaseStorage {
                 .order('created_at', { ascending: false });
             if (error)
                 throw error;
-            return data || [];
+            let transactions = data || [];
+            if (userRole === 'worker') {
+                transactions = transactions.slice(0, 20);
+                console.log(`🚫 Worker role - showing latest 20 transactions: ${transactions.length}`);
+            }
+            else {
+                console.log(`✅ Full access role - showing all transactions: ${transactions.length}`);
+            }
+            return transactions;
         }
         catch (error) {
             console.error('Error getting transactions:', error);
@@ -124,6 +146,94 @@ class DatabaseStorage {
         }
         catch (error) {
             console.error('Error creating transaction:', error);
+            throw error;
+        }
+    }
+    async updateTransaction(id, transactionData, userRole) {
+        try {
+            const { data: existingTransaction, error: fetchError } = await supabase
+                .from('transactions')
+                .select('*')
+                .eq('id', id)
+                .single();
+            if (fetchError) {
+                console.error('Error fetching transaction for update:', fetchError);
+                throw fetchError;
+            }
+            if (!existingTransaction) {
+                throw new Error('Transaction not found');
+            }
+            if (!canWorkerModifyTransaction(userRole || '', existingTransaction.created_at)) {
+                throw new Error('Worker users can only edit transactions within 24 hours of creation');
+            }
+            if (transactionData.partsCost !== undefined ||
+                transactionData.repair_cost !== undefined ||
+                transactionData.internalCost !== undefined ||
+                transactionData.externalItemCost !== undefined) {
+                const externalCost = transactionData.externalItemCost || existingTransaction.external_item_cost || 0;
+                const internalCost = transactionData.internalCost || existingTransaction.internal_cost || 0;
+                const repairCost = transactionData.repair_cost || existingTransaction.repair_cost || 0;
+                let partsCost = 0;
+                if (transactionData.partsCost !== undefined) {
+                    if (Array.isArray(transactionData.partsCost)) {
+                        partsCost = transactionData.partsCost.reduce((total, part) => total + (part.cost || 0), 0);
+                    }
+                    else {
+                        partsCost = parseFloat(transactionData.partsCost) || 0;
+                    }
+                }
+                else {
+                    partsCost = existingTransaction.parts_cost || 0;
+                }
+                const totalExpenses = externalCost + internalCost + partsCost;
+                const calculatedProfit = repairCost - totalExpenses;
+                transactionData.profit = calculatedProfit;
+                console.log(`💰 Updated profit calculation: ₹${repairCost} - ₹${totalExpenses} = ₹${calculatedProfit}`);
+            }
+            const { data, error } = await supabase
+                .from('transactions')
+                .update(transactionData)
+                .eq('id', id)
+                .select()
+                .single();
+            if (error)
+                throw error;
+            console.log('✅ Transaction updated successfully');
+            return data;
+        }
+        catch (error) {
+            console.error('Error updating transaction:', error);
+            throw error;
+        }
+    }
+    async deleteTransaction(id, userRole) {
+        try {
+            const { data: existingTransaction, error: fetchError } = await supabase
+                .from('transactions')
+                .select('created_at')
+                .eq('id', id)
+                .single();
+            if (fetchError) {
+                console.error('Error fetching transaction for deletion:', fetchError);
+                throw fetchError;
+            }
+            if (!existingTransaction) {
+                throw new Error('Transaction not found');
+            }
+            if (!canWorkerModifyTransaction(userRole || '', existingTransaction.created_at)) {
+                throw new Error('Worker users can only delete transactions within 24 hours of creation');
+            }
+            const { error } = await supabase
+                .from('transactions')
+                .delete()
+                .eq('id', id);
+            if (error)
+                throw error;
+            console.log('✅ Transaction deleted successfully');
+            return true;
+        }
+        catch (error) {
+            console.error('Error deleting transaction:', error);
             throw error;
         }
     }
@@ -311,42 +421,62 @@ class DatabaseStorage {
             return [];
         }
     }
-    async getTodayStats() {
+    async getTodayStats(userRole) {
         try {
             const today = new Date().toISOString().split('T')[0];
             const { data: transactions, error } = await supabase
                 .from('transactions')
-                .select('repair_cost')
+                .select('repair_cost, profit')
                 .gte('created_at', today + 'T00:00:00.000Z')
-                .lt('created_at', today + 'T23:59:59.999Z');
+                .lt('created_at', today + 'T23:59:59.999Z')
+                .order('created_at', { ascending: false });
             if (error)
                 throw error;
-            const count = transactions.length;
-            const revenue = transactions.reduce((sum, t) => sum + (parseFloat(t.repair_cost) || 0), 0);
-            return { transactions: count, revenue };
+            let filteredTransactions = transactions || [];
+            if (userRole === 'worker') {
+                filteredTransactions = filteredTransactions.slice(0, 20);
+                console.log(`🚫 Worker role today stats - limited to ${filteredTransactions.length} transactions`);
+            }
+            else {
+                console.log(`✅ Full access today stats - showing ${filteredTransactions.length} transactions`);
+            }
+            const count = filteredTransactions.length;
+            const revenue = filteredTransactions.reduce((sum, t) => sum + (parseFloat(t.repair_cost) || 0), 0);
+            const profit = filteredTransactions.reduce((sum, t) => sum + (parseFloat(t.profit) || 0), 0);
+            return { transactions: count, revenue, profit };
         }
         catch (error) {
             console.error('Error getting today stats:', error);
-            return { transactions: 0, revenue: 0 };
+            return { transactions: 0, revenue: 0, profit: 0 };
         }
     }
-    async getWeekStats() {
+    async getWeekStats(userRole) {
         try {
             const weekAgo = new Date();
             weekAgo.setDate(weekAgo.getDate() - 7);
             const { data: transactions, error } = await supabase
                 .from('transactions')
-                .select('repair_cost')
-                .gte('created_at', weekAgo.toISOString());
+                .select('repair_cost, profit')
+                .gte('created_at', weekAgo.toISOString())
+                .order('created_at', { ascending: false });
             if (error)
                 throw error;
-            const count = transactions.length;
-            const revenue = transactions.reduce((sum, t) => sum + (parseFloat(t.repair_cost) || 0), 0);
-            return { transactions: count, revenue };
+            let filteredTransactions = transactions || [];
+            if (userRole === 'worker') {
+                filteredTransactions = filteredTransactions.slice(0, 20);
+                console.log(`🚫 Worker role week stats - limited to ${filteredTransactions.length} transactions`);
+            }
+            else {
+                console.log(`✅ Full access week stats - showing ${filteredTransactions.length} transactions`);
+            }
+            const count = filteredTransactions.length;
+            const revenue = filteredTransactions.reduce((sum, t) => sum + (parseFloat(t.repair_cost) || 0), 0);
+            const profit = filteredTransactions.reduce((sum, t) => sum + (parseFloat(t.profit) || 0), 0);
+            return { transactions: count, revenue, profit };
         }
         catch (error) {
             console.error('Error getting week stats:', error);
-            return { transactions: 0, revenue: 0 };
+            return { transactions: 0, revenue: 0, profit: 0 };
         }
     }
     async getMonthStats() {
@@ -387,9 +517,9 @@ class DatabaseStorage {
             return { transactions: 0, revenue: 0 };
         }
     }
-    async getDashboardTotals() {
+    async getDashboardTotals(userRole) {
         try {
-            console.log('📊 Getting dashboard totals...');
+            console.log('📊 Getting dashboard totals for role:', userRole || 'no-role');
             const { data: transactions, error } = await supabase
                 .from('transactions')
                 .select('*')
@@ -398,8 +528,15 @@ class DatabaseStorage {
                 console.error('Error getting transactions for dashboard:', error);
                 throw error;
             }
-            const transactionList = transactions || [];
-            console.log(`Found ${transactionList.length} transactions for dashboard`);
+            let transactionList = transactions || [];
+            console.log(`Found ${transactionList.length} total transactions for dashboard`);
+            if (userRole === 'worker') {
+                transactionList = transactionList.slice(0, 20);
+                console.log(`🚫 Worker role detected - showing latest 20 transactions: ${transactionList.length} transactions`);
+            }
+            else {
+                console.log(`✅ Full access role detected - showing all data: ${transactionList.length} transactions`);
+            }
             let totalRevenue = 0;
             let totalProfit = 0;
             let completedCount = 0;
@@ -429,8 +566,11 @@ class DatabaseStorage {
                 avgTransactionValue: transactionList.length > 0 ? totalRevenue / transactionList.length : 0,
                 completedTransactions: completedCount,
                 pendingTransactions: pendingCount,
+                profitMargin: totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0,
+                userRole: userRole || 'guest',
+                dataRestricted: userRole === 'worker'
             };
-            console.log('✅ Dashboard totals calculated:', result);
+            console.log('✅ Dashboard totals calculated for role', userRole, ':', result);
             return result;
         }
         catch (error) {
@@ -541,6 +681,33 @@ class DatabaseStorage {
         }
         catch (error) {
             console.error('Error searching suppliers:', error);
+            return [];
+        }
+    }
+    async searchTransactions(query, userRole) {
+        try {
+            if (!query) {
+                return [];
+            }
+            const { data, error } = await supabase
+                .from('transactions')
+                .select('*')
+                .or(`customer_name.ilike.%${query}%,mobile_number.ilike.%${query}%,device_model.ilike.%${query}%,repair_type.ilike.%${query}%`)
+                .order('created_at', { ascending: false });
+            if (error)
+                throw error;
+            let transactions = data || [];
+            if (userRole === 'worker') {
+                transactions = transactions.slice(0, 20);
+                console.log(`🚫 Worker role search - showing latest 20 results: ${transactions.length}`);
+            }
+            else {
+                console.log(`✅ Full access search - showing all results: ${transactions.length} for role: ${userRole || 'guest'}`);
+            }
+            return transactions;
+        }
+        catch (error) {
+            console.error('Error searching transactions:', error);
             return [];
         }
     }

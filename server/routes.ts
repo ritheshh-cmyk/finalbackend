@@ -58,6 +58,132 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
     res.json({ version: '1.0.0', name: 'Mobile Repair Tracker Backend' });
   });
 
+  // Dashboard routes with optional auth (must be BEFORE requireAuth)
+  // Dashboard endpoint with role-based access control
+  app.get('/api/dashboard', optionalAuth, async (req, res) => {
+    try {
+      console.log('📊 Dashboard endpoint called by user:', req.user?.username || 'guest', 'role:', req.user?.role || 'none');
+      
+      const userRole = req.user?.role;
+      
+      // Add individual error handling for each method
+      let totals = {};
+      let recentTransactions = [];
+      let topSuppliers = [];
+      
+      try {
+        totals = await storage.getDashboardTotals(userRole);
+        console.log('✅ Dashboard totals fetched for role:', userRole);
+      } catch (error) {
+        console.error('❌ Dashboard totals error:', error);
+        totals = { totalRevenue: 0, totalExpenses: 0, totalProfit: 0, totalSuppliers: 0, totalProducts: 0 };
+      }
+      
+      try {
+        recentTransactions = await storage.getRecentTransactions(5);
+        console.log('✅ Recent transactions fetched:', recentTransactions.length);
+      } catch (error) {
+        console.error('❌ Recent transactions error:', error);
+        recentTransactions = [];
+      }
+      
+      try {
+        topSuppliers = await storage.getTopSuppliers(5);
+        console.log('✅ Top suppliers fetched:', topSuppliers.length);
+      } catch (error) {
+        console.error('❌ Top suppliers error:', error);
+        topSuppliers = [];
+      }
+      
+      const response = { 
+        totals, 
+        recentTransactions, 
+        topSuppliers,
+        userInfo: {
+          username: req.user?.username || 'guest',
+          role: req.user?.role || 'none',
+          hasRestrictions: userRole === 'worker'
+        }
+      };
+      console.log('📤 Dashboard response ready for role:', userRole);
+      res.json(response);
+      
+    } catch (error) {
+      console.error('❌ Dashboard endpoint error:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch dashboard data',
+        details: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Dashboard Stats Route (Frontend expects this)
+  // Dashboard stats with role-based access (admin/owner get full data)
+  app.get('/api/dashboard/stats', optionalAuth, async (req, res) => {
+    try {
+      const userRole = req.user?.role;
+      console.log(`📊 Dashboard stats requested by role: ${userRole || 'guest'}`);
+      
+      const totals = await storage.getDashboardTotals(userRole);
+      const todayStats = await storage.getTodayStats(userRole);
+      const weekStats = await storage.getWeekStats(userRole);
+      
+      res.json({ 
+        totals, 
+        today: todayStats, 
+        week: weekStats,
+        userRole: userRole || 'guest',
+        fullAccess: userRole !== 'worker'
+      });
+    } catch (error) {
+      console.error('Dashboard stats error:', error);
+      res.status(500).json({ error: 'Failed to fetch dashboard stats' });
+    }
+  });
+
+  // Dashboard Totals Route with role-based access control
+  app.get('/api/dashboard/totals', optionalAuth, async (req, res) => {
+    try {
+      const userRole = req.user?.role;
+      console.log('📊 Dashboard totals endpoint called by role:', userRole);
+      
+      const totals = await storage.getDashboardTotals(userRole);
+      res.json({
+        ...totals,
+        userRole: userRole || 'guest',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Dashboard totals error:', error);
+      res.status(500).json({ error: 'Failed to fetch dashboard totals' });
+    }
+  });
+
+  // Recent Transactions Route
+  app.get('/api/dashboard/recent-transactions', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 5;
+      const transactions = await storage.getRecentTransactions(limit);
+      res.json(transactions);
+    } catch (error) {
+      console.error('Recent transactions error:', error);
+      res.status(500).json({ error: 'Failed to fetch recent transactions' });
+    }
+  });
+
+  // Dashboard top suppliers
+  app.get('/api/dashboard/top-suppliers', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 5;
+      const suppliers = await storage.getTopSuppliers(limit);
+      res.json(suppliers);
+    } catch (error) {
+      console.error('Top suppliers error:', error);
+      res.status(500).json({ error: 'Failed to fetch top suppliers' });
+    }
+  });
+
   // All routes below require authentication
   app.use(requireAuth);
 
@@ -242,30 +368,6 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
     }
   });
 
-  // Dashboard Stats Route (Frontend expects this)
-  // Dashboard stats with role-based access (admin/owner get full data)
-  app.get('/api/dashboard/stats', optionalAuth, async (req, res) => {
-    try {
-      const userRole = req.user?.role;
-      console.log(`📊 Dashboard stats requested by role: ${userRole || 'guest'}`);
-      
-      const totals = await storage.getDashboardTotals(userRole);
-      const todayStats = await storage.getTodayStats(userRole);
-      const weekStats = await storage.getWeekStats(userRole);
-      
-      res.json({ 
-        totals, 
-        today: todayStats, 
-        week: weekStats,
-        userRole: userRole || 'guest',
-        fullAccess: userRole !== 'worker'
-      });
-    } catch (error) {
-      console.error('Dashboard stats error:', error);
-      res.status(500).json({ error: 'Failed to fetch dashboard stats' });
-    }
-  });
-
   // NEWLY ADDED: Weekly Statistics Endpoint
   app.get('/api/stats/weekly', async (req, res) => {
     try {
@@ -382,36 +484,6 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
         error: 'Failed to fetch customer analytics',
         details: error.message
       });
-    }
-  });
-
-  // Dashboard Totals Route with role-based access control
-  app.get('/api/dashboard/totals', optionalAuth, async (req, res) => {
-    try {
-      const userRole = req.user?.role;
-      console.log('📊 Dashboard totals endpoint called by role:', userRole);
-      
-      const totals = await storage.getDashboardTotals(userRole);
-      res.json({
-        ...totals,
-        userRole: userRole || 'guest',
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Dashboard totals error:', error);
-      res.status(500).json({ error: 'Failed to fetch dashboard totals' });
-    }
-  });
-
-  // Recent Transactions Route
-  app.get('/api/dashboard/recent-transactions', async (req, res) => {
-    try {
-      const limit = parseInt(req.query.limit as string) || 5;
-      const recentTransactions = await storage.getRecentTransactions(limit);
-      res.json(recentTransactions);
-    } catch (error) {
-      console.error('Recent transactions error:', error);
-      res.status(500).json({ error: 'Failed to fetch recent transactions' });
     }
   });
 
@@ -2114,18 +2186,6 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
     } catch (error) {
       console.error('Recent transactions error:', error);
       res.status(500).json({ error: 'Failed to fetch recent transactions' });
-    }
-  });
-
-  // Dashboard top suppliers
-  app.get('/api/dashboard/top-suppliers', async (req, res) => {
-    try {
-      const limit = parseInt(req.query.limit as string) || 5;
-      const suppliers = await storage.getTopSuppliers(limit);
-      res.json(suppliers);
-    } catch (error) {
-      console.error('Top suppliers error:', error);
-      res.status(500).json({ error: 'Failed to fetch top suppliers' });
     }
   });
 
