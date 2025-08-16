@@ -58,6 +58,69 @@ export async function registerRoutes(app: Express, io: SocketIOServer): Promise<
     res.json({ version: '1.0.0', name: 'Mobile Repair Tracker Backend' });
   });
 
+  // Debug endpoint to check what backend can see in database
+  app.get('/api/debug/database', async (req, res) => {
+    try {
+      console.log('🔍 Debug endpoint called - checking database content directly...');
+      
+      // Check transactions table directly
+      const { data: transactions, error: txError, count } = await supabase
+        .from('transactions')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      let debugInfo = {
+        timestamp: new Date().toISOString(),
+        database_connection: 'checking...',
+        transactions_query_error: txError?.message || null,
+        transactions_found: transactions?.length || 0,
+        transactions_total_count: count || 0,
+        sample_transactions: [],
+        table_structure: null,
+        supabase_config: {
+          url: process.env.SUPABASE_URL || 'not set',
+          key_type: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'service_role' : 'not set'
+        }
+      };
+      
+      if (transactions && transactions.length > 0) {
+        debugInfo.table_structure = Object.keys(transactions[0]);
+        debugInfo.sample_transactions = transactions.slice(0, 3).map(tx => ({
+          id: tx.id,
+          customer_name: tx.customer_name,
+          repair_cost: tx.repair_cost,
+          profit: tx.profit,
+          status: tx.status,
+          created_at: tx.created_at
+        }));
+      }
+      
+      // Test other tables
+      const { data: suppliers } = await supabase.from('suppliers').select('*').limit(3);
+      debugInfo.suppliers_found = suppliers?.length || 0;
+      
+      const { data: customers } = await supabase.from('customers').select('*').limit(3);
+      debugInfo.customers_found = customers?.length || 0;
+      
+      debugInfo.database_connection = 'connected';
+      
+      res.json(debugInfo);
+      
+    } catch (error) {
+      console.error('🔍 Debug endpoint error:', error);
+      res.json({
+        timestamp: new Date().toISOString(),
+        database_connection: 'error',
+        error: error.message,
+        supabase_config: {
+          url: process.env.SUPABASE_URL || 'not set',
+          key_type: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'service_role' : 'not set'
+        }
+      });
+    }
+  });
+
   // Dashboard routes with optional auth (must be BEFORE requireAuth)
   // Dashboard endpoint with role-based access control
   app.get('/api/dashboard', optionalAuth, async (req, res) => {
