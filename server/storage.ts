@@ -607,35 +607,32 @@ class DatabaseStorage {
     }
   }
 
-  // Dashboard methods
+  // Dashboard methods - FIXED with same approach as debug endpoint
   async getDashboardTotals(userRole?: string): Promise<any> {
     try {
       console.log('📊 Getting dashboard totals for role:', userRole || 'no-role');
       
-      // Use the same pattern as getTransactions (which works)
-      const { data: transactions, error } = await supabase
+      // Use the EXACT same query approach as the working debug endpoint
+      const { data: transactions, error: txError, count } = await supabase
         .from('transactions')
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error getting transactions for dashboard:', error);
-        throw error;
+      if (txError) {
+        console.error('❌ Error getting transactions for dashboard:', txError);
+        throw txError;
       }
 
       let transactionList = transactions || [];
-      console.log(`Found ${transactionList.length} total transactions for dashboard`);
+      console.log(`✅ Found ${transactionList.length} total transactions for dashboard (total count: ${count})`);
 
-      // 🔒 ROLE-BASED DATA FILTERING
-      // Only worker users get restricted data (limited/demo data)
-      // All other roles (admin, owner, user, demo) see full real data
+      // 🔒 ROLE-BASED DATA FILTERING  
+      // Only worker users get restricted data
       if (userRole === 'worker') {
-        // Worker users see latest 20 transactions only
-        transactionList = transactionList.slice(0, 20); // Only latest 20 transactions
-        console.log(`🚫 Worker role detected - showing latest 20 transactions: ${transactionList.length} transactions`);
+        transactionList = transactionList.slice(0, 20);
+        console.log(`🚫 Worker role - showing latest 20 transactions: ${transactionList.length}`);
       } else {
-        // All other users (admin, owner, user, demo) see full real data
-        console.log(`✅ Full access role detected - showing all data: ${transactionList.length} transactions`);
+        console.log(`✅ Full access role - showing all data: ${transactionList.length} transactions`);
       }
 
       // Calculate totals from filtered data
@@ -645,13 +642,11 @@ class DatabaseStorage {
       let pendingCount = 0;
 
       transactionList.forEach(transaction => {
-        // Revenue calculation: Total amount customer pays for repair
-        const revenue = parseFloat(transaction.repair_cost) || 0;
-        totalRevenue += revenue;
-        
-        // Profit calculation: Already calculated profit from transaction.profit field
-        // Profit = Revenue (repair_cost) - Total Expenses (part_cost + labor_cost + overhead)
+        // ✅ FIXED: Use same field access as debug endpoint
+        const repairCost = parseFloat(transaction.repair_cost) || 0;
         const profit = parseFloat(transaction.profit) || 0;
+        
+        totalRevenue += repairCost;
         totalProfit += profit;
         
         // Count by status
@@ -660,12 +655,15 @@ class DatabaseStorage {
         } else if (transaction.status === 'pending' || transaction.status === 'Pending') {
           pendingCount++;
         }
+        
+        // Log individual transactions for debugging
+        if (repairCost > 0) {
+          console.log(`Transaction ${transaction.id}: ₹${repairCost} (profit: ₹${profit})`);
+        }
       });
 
-      // Get suppliers count using same pattern
-      const { data: suppliers } = await supabase
-        .from('suppliers')
-        .select('*');
+      // Get suppliers count
+      const { data: suppliers } = await supabase.from('suppliers').select('*');
 
       const result = {
         totalTransactions: transactionList.length,
@@ -677,17 +675,28 @@ class DatabaseStorage {
         avgTransactionValue: transactionList.length > 0 ? totalRevenue / transactionList.length : 0,
         completedTransactions: completedCount,
         pendingTransactions: pendingCount,
-        // Add profit calculation explanation
         profitMargin: totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0,
         userRole: userRole || 'guest',
-        dataRestricted: userRole === 'worker'
+        dataRestricted: userRole === 'worker',
+        // Add debugging info
+        debugInfo: {
+          databaseCount: count,
+          filteredCount: transactionList.length,
+          sampleRevenue: transactionList.slice(0, 3).map(t => parseFloat(t.repair_cost) || 0)
+        }
       };
 
-      console.log('✅ Dashboard totals calculated for role', userRole, ':', result);
+      console.log('✅ Dashboard totals calculated:', {
+        totalTransactions: result.totalTransactions,
+        totalRevenue: result.totalRevenue,
+        totalProfit: result.totalProfit,
+        role: userRole
+      });
+      
       return result;
 
     } catch (error) {
-      console.error('Error in getDashboardTotals:', error);
+      console.error('❌ Error in getDashboardTotals:', error);
       return {
         totalTransactions: 0,
         totalRevenue: 0,
@@ -698,6 +707,7 @@ class DatabaseStorage {
         avgTransactionValue: 0,
         completedTransactions: 0,
         pendingTransactions: 0,
+        error: error.message
       };
     }
   }
