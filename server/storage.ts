@@ -636,30 +636,31 @@ class DatabaseStorage {
         console.log(`✅ Full access role - showing all data: ${transactionList.length} transactions`);
       }
 
-      // Calculate totals from filtered data
+      // Calculate totals from filtered data - FIXED FOR REAL-TIME ACCURACY
       let totalRevenue = 0;
       let totalProfit = 0;
       let completedCount = 0;
       let pendingCount = 0;
 
       transactionList.forEach(transaction => {
-        // ✅ FIXED: Use same field access as debug endpoint
-        const repairCost = parseFloat(transaction.repair_cost) || 0;
-        const profit = parseFloat(transaction.profit) || 0;
+        // ✅ FIXED: Use correct fields for real-time business metrics
+        const amountGiven = parseFloat(transaction.amount_given) || 0;  // This is revenue
+        const repairCost = parseFloat(transaction.repair_cost) || 0;    // This is cost
+        const profit = parseFloat(transaction.profit) || (amountGiven - repairCost);  // Calculate if needed
         
-        totalRevenue += repairCost;
-        totalProfit += profit;
+        totalRevenue += amountGiven;  // ✅ FIXED: Revenue = amount_given, not repair_cost
+        totalProfit += profit;        // ✅ FIXED: Use actual profit calculation
         
-        // Count by status
+        // Count by status for real-time tracking
         if (transaction.status === 'completed' || transaction.status === 'Completed') {
           completedCount++;
         } else if (transaction.status === 'pending' || transaction.status === 'Pending') {
           pendingCount++;
         }
         
-        // Log individual transactions for debugging
-        if (repairCost > 0) {
-          console.log(`Transaction ${transaction.id}: ₹${repairCost} (profit: ₹${profit})`);
+        // Log individual transactions for debugging real-time calculations
+        if (amountGiven > 0) {
+          console.log(`Transaction ${transaction.id}: Revenue ₹${amountGiven} Cost ₹${repairCost} Profit ₹${profit}`);
         }
       });
 

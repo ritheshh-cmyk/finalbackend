@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerRoutes = registerRoutes;
-const storage_js_1 = require("./storage.js");
+const storage_1 = require("./storage");
 const db_1 = require("./db");
 const supabase_auth_middleware_1 = require("./supabase-auth-middleware");
 const supabase_js_1 = require("@supabase/supabase-js");
@@ -19,12 +19,13 @@ async function registerRoutes(app, io) {
             const result = await db_1.pool.query('SELECT NOW() as current_time');
             res.json({
                 status: 'OK',
-                message: 'Mobile Repair Tracker Backend is running with Supabase Auth',
+                message: 'Mobile Repair Tracker Backend is running with Supabase Auth - FIXED VERSION',
                 timestamp: new Date().toISOString(),
                 port: process.env.PORT || 10000,
                 database: 'connected',
                 dbTime: result.rows[0]?.current_time,
-                auth: 'supabase'
+                auth: 'supabase',
+                version: '2.0.1-dashboard-fix'
             });
         }
         catch (error) {
@@ -43,6 +44,58 @@ async function registerRoutes(app, io) {
     app.get('/api/version', (req, res) => {
         res.json({ version: '1.0.0', name: 'Mobile Repair Tracker Backend' });
     });
+    app.get('/api/debug/database', async (req, res) => {
+        try {
+            console.log('🔍 Debug endpoint called - checking database content directly...');
+            const { data: transactions, error: txError, count } = await supabase
+                .from('transactions')
+                .select('*', { count: 'exact' })
+                .order('created_at', { ascending: false })
+                .limit(10);
+            let debugInfo = {
+                timestamp: new Date().toISOString(),
+                database_connection: 'checking...',
+                transactions_query_error: txError?.message || null,
+                transactions_found: transactions?.length || 0,
+                transactions_total_count: count || 0,
+                sample_transactions: [],
+                table_structure: null,
+                supabase_config: {
+                    url: process.env.SUPABASE_URL || 'not set',
+                    key_type: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'service_role' : 'not set'
+                }
+            };
+            if (transactions && transactions.length > 0) {
+                debugInfo.table_structure = Object.keys(transactions[0]);
+                debugInfo.sample_transactions = transactions.slice(0, 3).map(tx => ({
+                    id: tx.id,
+                    customer_name: tx.customer_name,
+                    repair_cost: tx.repair_cost,
+                    profit: tx.profit,
+                    status: tx.status,
+                    created_at: tx.created_at
+                }));
+            }
+            const { data: suppliers } = await supabase.from('suppliers').select('*').limit(3);
+            debugInfo.suppliers_found = suppliers?.length || 0;
+            const { data: customers } = await supabase.from('customers').select('*').limit(3);
+            debugInfo.customers_found = customers?.length || 0;
+            debugInfo.database_connection = 'connected';
+            res.json(debugInfo);
+        }
+        catch (error) {
+            console.error('🔍 Debug endpoint error:', error);
+            res.json({
+                timestamp: new Date().toISOString(),
+                database_connection: 'error',
+                error: error.message,
+                supabase_config: {
+                    url: process.env.SUPABASE_URL || 'not set',
+                    key_type: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'service_role' : 'not set'
+                }
+            });
+        }
+    });
     app.get('/api/dashboard', supabase_auth_middleware_1.optionalAuth, async (req, res) => {
         try {
             console.log('📊 Dashboard endpoint called by user:', req.user?.username || 'guest', 'role:', req.user?.role || 'none');
@@ -51,7 +104,7 @@ async function registerRoutes(app, io) {
             let recentTransactions = [];
             let topSuppliers = [];
             try {
-                totals = await storage_js_1.storage.getDashboardTotals(userRole);
+                totals = await storage_1.storage.getDashboardTotals(userRole);
                 console.log('✅ Dashboard totals fetched for role:', userRole);
             }
             catch (error) {
@@ -59,7 +112,7 @@ async function registerRoutes(app, io) {
                 totals = { totalRevenue: 0, totalExpenses: 0, totalProfit: 0, totalSuppliers: 0, totalProducts: 0 };
             }
             try {
-                recentTransactions = await storage_js_1.storage.getRecentTransactions(5);
+                recentTransactions = await storage_1.storage.getRecentTransactions(5);
                 console.log('✅ Recent transactions fetched:', recentTransactions.length);
             }
             catch (error) {
@@ -67,7 +120,7 @@ async function registerRoutes(app, io) {
                 recentTransactions = [];
             }
             try {
-                topSuppliers = await storage_js_1.storage.getTopSuppliers(5);
+                topSuppliers = await storage_1.storage.getTopSuppliers(5);
                 console.log('✅ Top suppliers fetched:', topSuppliers.length);
             }
             catch (error) {
@@ -100,9 +153,9 @@ async function registerRoutes(app, io) {
         try {
             const userRole = req.user?.role;
             console.log(`📊 Dashboard stats requested by role: ${userRole || 'guest'}`);
-            const totals = await storage_js_1.storage.getDashboardTotals(userRole);
-            const todayStats = await storage_js_1.storage.getTodayStats(userRole);
-            const weekStats = await storage_js_1.storage.getWeekStats(userRole);
+            const totals = await storage_1.storage.getDashboardTotals(userRole);
+            const todayStats = await storage_1.storage.getTodayStats(userRole);
+            const weekStats = await storage_1.storage.getWeekStats(userRole);
             res.json({
                 totals,
                 today: todayStats,
@@ -120,7 +173,7 @@ async function registerRoutes(app, io) {
         try {
             const userRole = req.user?.role;
             console.log('📊 Dashboard totals endpoint called by role:', userRole);
-            const totals = await storage_js_1.storage.getDashboardTotals(userRole);
+            const totals = await storage_1.storage.getDashboardTotals(userRole);
             res.json({
                 ...totals,
                 userRole: userRole || 'guest',
@@ -135,7 +188,7 @@ async function registerRoutes(app, io) {
     app.get('/api/dashboard/recent-transactions', async (req, res) => {
         try {
             const limit = parseInt(req.query.limit) || 5;
-            const transactions = await storage_js_1.storage.getRecentTransactions(limit);
+            const transactions = await storage_1.storage.getRecentTransactions(limit);
             res.json(transactions);
         }
         catch (error) {
@@ -146,7 +199,7 @@ async function registerRoutes(app, io) {
     app.get('/api/dashboard/top-suppliers', async (req, res) => {
         try {
             const limit = parseInt(req.query.limit) || 5;
-            const suppliers = await storage_js_1.storage.getTopSuppliers(limit);
+            const suppliers = await storage_1.storage.getTopSuppliers(limit);
             res.json(suppliers);
         }
         catch (error) {
@@ -157,7 +210,7 @@ async function registerRoutes(app, io) {
     app.use(supabase_auth_middleware_1.requireAuth);
     app.get('/api/notifications', async (req, res) => {
         try {
-            const notifications = await storage_js_1.storage.getNotifications();
+            const notifications = await storage_1.storage.getNotifications();
             res.json({ notifications });
         }
         catch (error) {
@@ -167,7 +220,7 @@ async function registerRoutes(app, io) {
     app.get('/api/settings', async (req, res) => {
         try {
             const userId = req.user?.id;
-            const settings = await storage_js_1.storage.getUserSettings(userId);
+            const settings = await storage_1.storage.getUserSettings(userId);
             res.json({ settings });
         }
         catch (error) {
@@ -176,7 +229,7 @@ async function registerRoutes(app, io) {
     });
     app.get('/api/activity-log', async (req, res) => {
         try {
-            const logs = await storage_js_1.storage.getActivityLog();
+            const logs = await storage_1.storage.getActivityLog();
             res.json({ logs });
         }
         catch (error) {
@@ -185,7 +238,7 @@ async function registerRoutes(app, io) {
     });
     app.get('/api/activity-logs', async (req, res) => {
         try {
-            const logs = await storage_js_1.storage.getActivityLog();
+            const logs = await storage_1.storage.getActivityLog();
             res.json(logs);
         }
         catch (error) {
@@ -194,7 +247,7 @@ async function registerRoutes(app, io) {
     });
     app.get('/api/users', (0, supabase_auth_middleware_1.requireRole)('admin', 'owner'), async (req, res) => {
         try {
-            const users = await storage_js_1.storage.getAllUsers();
+            const users = await storage_1.storage.getAllUsers();
             res.json({ users });
         }
         catch (error) {
@@ -254,7 +307,7 @@ async function registerRoutes(app, io) {
     });
     app.get('/api/permissions', (0, supabase_auth_middleware_1.requireRole)('admin', 'owner'), async (req, res) => {
         try {
-            const permissions = await storage_js_1.storage.getAllPermissions();
+            const permissions = await storage_1.storage.getAllPermissions();
             res.json({ permissions });
         }
         catch (error) {
@@ -273,7 +326,7 @@ async function registerRoutes(app, io) {
             let recentTransactions = [];
             let topSuppliers = [];
             try {
-                totals = await storage_js_1.storage.getDashboardTotals(userRole);
+                totals = await storage_1.storage.getDashboardTotals(userRole);
                 console.log('✅ Dashboard totals fetched for role:', userRole);
             }
             catch (error) {
@@ -281,7 +334,7 @@ async function registerRoutes(app, io) {
                 totals = { totalRevenue: 0, totalExpenses: 0, totalProfit: 0, totalSuppliers: 0, totalProducts: 0 };
             }
             try {
-                recentTransactions = await storage_js_1.storage.getRecentTransactions(5);
+                recentTransactions = await storage_1.storage.getRecentTransactions(5);
                 console.log('✅ Recent transactions fetched:', recentTransactions.length);
             }
             catch (error) {
@@ -289,7 +342,7 @@ async function registerRoutes(app, io) {
                 recentTransactions = [];
             }
             try {
-                topSuppliers = await storage_js_1.storage.getTopSuppliers(5);
+                topSuppliers = await storage_1.storage.getTopSuppliers(5);
                 console.log('✅ Top suppliers fetched:', topSuppliers.length);
             }
             catch (error) {
@@ -321,7 +374,7 @@ async function registerRoutes(app, io) {
     app.get('/api/stats/weekly', async (req, res) => {
         try {
             console.log('📊 Getting weekly statistics...');
-            const transactions = await storage_js_1.storage.getAllTransactions(1000, 0);
+            const transactions = await storage_1.storage.getAllTransactions(1000, 0);
             const dailyStats = [];
             for (let i = 6; i >= 0; i--) {
                 const date = new Date();
@@ -360,7 +413,7 @@ async function registerRoutes(app, io) {
     app.get('/api/analytics/customers', async (req, res) => {
         try {
             console.log('👥 Getting customer analytics...');
-            const transactions = await storage_js_1.storage.getAllTransactions(1000, 0);
+            const transactions = await storage_1.storage.getAllTransactions(1000, 0);
             const customerMap = new Map();
             transactions.forEach(transaction => {
                 const customerName = transaction.customer_name || 'Unknown Customer';
@@ -417,10 +470,10 @@ async function registerRoutes(app, io) {
             const dateRange = req.query.dateRange;
             let reports;
             if (dateRange) {
-                reports = await storage_js_1.storage.getReportsByDateRange(dateRange);
+                reports = await storage_1.storage.getReportsByDateRange(dateRange);
             }
             else {
-                reports = await storage_js_1.storage.getAllReports();
+                reports = await storage_1.storage.getAllReports();
             }
             res.json(reports);
             io.emit('reportUpdated', reports);
@@ -514,7 +567,7 @@ async function registerRoutes(app, io) {
             const dateRange = req.query.dateRange;
             let bills;
             if (search) {
-                bills = await storage_js_1.storage.searchBills(search);
+                bills = await storage_1.storage.searchBills(search);
             }
             else if (dateRange) {
                 const today = new Date();
@@ -537,10 +590,10 @@ async function registerRoutes(app, io) {
                     default:
                         startDate = new Date(0);
                 }
-                bills = await storage_js_1.storage.getBillsByDateRange(startDate, endDate);
+                bills = await storage_1.storage.getBillsByDateRange(startDate, endDate);
             }
             else {
-                bills = await storage_js_1.storage.getBills(limit, offset);
+                bills = await storage_1.storage.getBills(limit, offset);
             }
             res.json(bills);
         }
@@ -550,7 +603,7 @@ async function registerRoutes(app, io) {
     });
     app.post('/api/bills', supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
-            const bill = await storage_js_1.storage.createBill(req.body);
+            const bill = await storage_1.storage.createBill(req.body);
             res.json({ success: true, data: bill, message: 'Bill created successfully' });
             io.emit('billCreated', bill);
         }
@@ -562,7 +615,7 @@ async function registerRoutes(app, io) {
     app.put('/api/bills/:id', supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
             const id = parseInt(req.params.id);
-            const bill = await storage_js_1.storage.updateBill(id, req.body);
+            const bill = await storage_1.storage.updateBill(id, req.body);
             if (!bill)
                 return res.status(404).json({ success: false, error: 'Bill not found' });
             res.json({ success: true, data: bill, message: 'Bill updated successfully' });
@@ -576,7 +629,7 @@ async function registerRoutes(app, io) {
     app.delete('/api/bills/:id', supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
             const id = parseInt(req.params.id);
-            const success = await storage_js_1.storage.deleteBill(id);
+            const success = await storage_1.storage.deleteBill(id);
             if (!success)
                 return res.status(404).json({ success: false, error: 'Bill not found' });
             res.json({ success: true, message: 'Bill deleted successfully' });
@@ -590,8 +643,8 @@ async function registerRoutes(app, io) {
     app.get('/api/search', async (req, res) => {
         try {
             const q = req.query.q || '';
-            const transactionResults = await storage_js_1.storage.searchTransactions(q);
-            const supplierResults = await storage_js_1.storage.searchSuppliers(q);
+            const transactionResults = await storage_1.storage.searchTransactions(q);
+            const supplierResults = await storage_1.storage.searchSuppliers(q);
             res.json({ query: q, transactions: transactionResults, suppliers: supplierResults });
         }
         catch (error) {
@@ -601,7 +654,7 @@ async function registerRoutes(app, io) {
     app.post("/api/transactions", supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
             const validatedData = schema_1.insertTransactionSchema.parse(req.body);
-            const transaction = await storage_js_1.storage.createTransaction(validatedData);
+            const transaction = await storage_1.storage.createTransaction(validatedData);
             res.json({ success: true, data: transaction, message: 'Transaction created successfully' });
             io.emit("transactionCreated", transaction);
         }
@@ -692,7 +745,7 @@ async function registerRoutes(app, io) {
                 return res.status(400).json({ message: "Search query parameter 'q' is required" });
             }
             console.log(`🔍 Transaction search by role: ${userRole || 'guest'}, query: "${q}"`);
-            const transactions = await storage_js_1.storage.searchTransactions(q, userRole);
+            const transactions = await storage_1.storage.searchTransactions(q, userRole);
             res.json({
                 results: transactions,
                 total: transactions.length,
@@ -711,7 +764,7 @@ async function registerRoutes(app, io) {
             const id = parseInt(req.params.id);
             if (isNaN(id))
                 return res.status(400).json({ message: "Invalid transaction ID" });
-            const transaction = await storage_js_1.storage.getTransaction(id);
+            const transaction = await storage_1.storage.getTransaction(id);
             if (!transaction) {
                 return res.status(404).json({ message: "Transaction not found" });
             }
@@ -728,7 +781,7 @@ async function registerRoutes(app, io) {
             if (isNaN(id))
                 return res.status(400).json({ message: "Invalid transaction ID" });
             const validatedData = schema_1.insertTransactionSchema.partial().parse(req.body);
-            const transaction = await storage_js_1.storage.updateTransaction(id, validatedData, userRole);
+            const transaction = await storage_1.storage.updateTransaction(id, validatedData, userRole);
             if (!transaction) {
                 return res.status(404).json({ message: "Transaction not found" });
             }
@@ -759,7 +812,7 @@ async function registerRoutes(app, io) {
             const userRole = req.user?.role;
             if (isNaN(id))
                 return res.status(400).json({ message: "Invalid transaction ID" });
-            const success = await storage_js_1.storage.deleteTransaction(id, userRole);
+            const success = await storage_1.storage.deleteTransaction(id, userRole);
             if (!success) {
                 return res.status(404).json({ message: "Transaction not found" });
             }
@@ -783,7 +836,7 @@ async function registerRoutes(app, io) {
     });
     app.get("/api/stats/today", async (req, res) => {
         try {
-            const stats = await storage_js_1.storage.getTodayStats();
+            const stats = await storage_1.storage.getTodayStats();
             res.json(stats);
         }
         catch (error) {
@@ -792,7 +845,7 @@ async function registerRoutes(app, io) {
     });
     app.get("/api/stats/week", async (req, res) => {
         try {
-            const stats = await storage_js_1.storage.getWeekStats();
+            const stats = await storage_1.storage.getWeekStats();
             res.json(stats);
         }
         catch (error) {
@@ -801,7 +854,7 @@ async function registerRoutes(app, io) {
     });
     app.get("/api/stats/month", async (req, res) => {
         try {
-            const stats = await storage_js_1.storage.getMonthStats();
+            const stats = await storage_1.storage.getMonthStats();
             res.json(stats);
         }
         catch (error) {
@@ -810,7 +863,7 @@ async function registerRoutes(app, io) {
     });
     app.get("/api/stats/year", async (req, res) => {
         try {
-            const stats = await storage_js_1.storage.getYearStats();
+            const stats = await storage_1.storage.getYearStats();
             res.json(stats);
         }
         catch (error) {
@@ -819,7 +872,7 @@ async function registerRoutes(app, io) {
     });
     app.get("/api/transactions/stats/today", async (req, res) => {
         try {
-            const stats = await storage_js_1.storage.getTodayStats();
+            const stats = await storage_1.storage.getTodayStats();
             res.json(stats);
         }
         catch (error) {
@@ -828,7 +881,7 @@ async function registerRoutes(app, io) {
     });
     app.get("/api/transactions/stats/week", async (req, res) => {
         try {
-            const stats = await storage_js_1.storage.getWeekStats();
+            const stats = await storage_1.storage.getWeekStats();
             res.json(stats);
         }
         catch (error) {
@@ -837,7 +890,7 @@ async function registerRoutes(app, io) {
     });
     app.get("/api/transactions/stats/month", async (req, res) => {
         try {
-            const stats = await storage_js_1.storage.getMonthStats();
+            const stats = await storage_1.storage.getMonthStats();
             res.json(stats);
         }
         catch (error) {
@@ -846,7 +899,7 @@ async function registerRoutes(app, io) {
     });
     app.get("/api/transactions/stats/year", async (req, res) => {
         try {
-            const stats = await storage_js_1.storage.getYearStats();
+            const stats = await storage_1.storage.getYearStats();
             res.json(stats);
         }
         catch (error) {
@@ -857,7 +910,7 @@ async function registerRoutes(app, io) {
         (async () => {
             try {
                 const validatedData = schema_1.insertSupplierSchema.parse(req.body);
-                const supplier = await storage_js_1.storage.createSupplier(validatedData);
+                const supplier = await storage_1.storage.createSupplier(validatedData);
                 res.json(supplier);
                 io.emit("supplierCreated", supplier);
             }
@@ -918,7 +971,7 @@ async function registerRoutes(app, io) {
             try {
                 const id = parseInt(req.params.id);
                 const validatedData = schema_1.insertSupplierSchema.partial().parse(req.body);
-                const supplier = await storage_js_1.storage.updateSupplier(id, validatedData);
+                const supplier = await storage_1.storage.updateSupplier(id, validatedData);
                 if (!supplier)
                     return res.status(404).json({ message: "Supplier not found" });
                 res.json(supplier);
@@ -940,7 +993,7 @@ async function registerRoutes(app, io) {
         (async () => {
             try {
                 const id = parseInt(req.params.id);
-                const success = await storage_js_1.storage.deleteSupplier(id);
+                const success = await storage_1.storage.deleteSupplier(id);
                 if (!success)
                     return res.status(404).json({ message: "Supplier not found" });
                 res.json({ message: "Supplier deleted successfully" });
@@ -957,11 +1010,11 @@ async function registerRoutes(app, io) {
         (async () => {
             try {
                 const validatedData = schema_1.insertSupplierPaymentSchema.parse(req.body);
-                const payment = await storage_js_1.storage.createSupplierPayment(validatedData);
+                const payment = await storage_1.storage.createSupplierPayment(validatedData);
                 res.json({ success: true, data: payment, message: 'Payment created successfully' });
                 io.emit("paymentCreated", payment);
                 io.emit("supplierPaymentMade", payment);
-                const summary = await storage_js_1.storage.getSupplierExpenditureSummary();
+                const summary = await storage_1.storage.getSupplierExpenditureSummary();
                 io.emit("supplierSummaryChanged", summary);
             }
             catch (error) {
@@ -982,7 +1035,7 @@ async function registerRoutes(app, io) {
         (async () => {
             try {
                 const supplierId = req.query.supplierId ? parseInt(req.query.supplierId) : undefined;
-                const payments = await storage_js_1.storage.getSupplierPayments(supplierId);
+                const payments = await storage_1.storage.getSupplierPayments(supplierId);
                 res.json(payments);
             }
             catch (error) {
@@ -997,7 +1050,7 @@ async function registerRoutes(app, io) {
             try {
                 const limit = parseInt(req.query.limit) || 50;
                 const offset = parseInt(req.query.offset) || 0;
-                const orders = await storage_js_1.storage.getPurchaseOrders(limit, offset);
+                const orders = await storage_1.storage.getPurchaseOrders(limit, offset);
                 res.json(orders);
             }
             catch (error) {
@@ -1017,7 +1070,7 @@ async function registerRoutes(app, io) {
                     paid_amount: validatedData.paidAmount,
                     remaining_amount: validatedData.remainingAmount
                 };
-                const expenditure = await storage_js_1.storage.createExpenditure(dbData);
+                const expenditure = await storage_1.storage.createExpenditure(dbData);
                 res.json({ success: true, data: expenditure, message: 'Expenditure created successfully' });
                 io.emit("expenditureCreated", expenditure);
             }
@@ -1060,7 +1113,7 @@ async function registerRoutes(app, io) {
                 const dateRange = req.query.dateRange;
                 let expenditures;
                 if (search) {
-                    expenditures = await storage_js_1.storage.getExpenditures(limit, offset);
+                    expenditures = await storage_1.storage.getExpenditures(limit, offset);
                 }
                 else if (dateRange) {
                     const today = new Date();
@@ -1083,10 +1136,10 @@ async function registerRoutes(app, io) {
                         default:
                             startDate = new Date(0);
                     }
-                    expenditures = await storage_js_1.storage.getExpenditures(limit, offset);
+                    expenditures = await storage_1.storage.getExpenditures(limit, offset);
                 }
                 else {
-                    expenditures = await storage_js_1.storage.getExpenditures(limit, offset);
+                    expenditures = await storage_1.storage.getExpenditures(limit, offset);
                 }
                 res.json(expenditures);
             }
@@ -1102,7 +1155,7 @@ async function registerRoutes(app, io) {
             try {
                 const id = parseInt(req.params.id);
                 const validatedData = schema_1.insertExpenditureSchema.partial().parse(req.body);
-                const expenditure = await storage_js_1.storage.updateExpenditure(id, validatedData);
+                const expenditure = await storage_1.storage.updateExpenditure(id, validatedData);
                 if (!expenditure)
                     return res.status(404).json({ message: "Expenditure not found" });
                 res.json({ success: true, data: expenditure, message: 'Expenditure updated successfully' });
@@ -1126,13 +1179,13 @@ async function registerRoutes(app, io) {
         (async () => {
             try {
                 const id = parseInt(req.params.id);
-                const success = await storage_js_1.storage.deleteExpenditure(id);
+                const success = await storage_1.storage.deleteExpenditure(id);
                 if (!success) {
                     return res.status(404).json({ message: "Expenditure not found" });
                 }
                 res.json({ success: true, message: "Expenditure deleted successfully" });
                 io.emit("expenditureDeleted", id);
-                const summary = await storage_js_1.storage.getSupplierExpenditureSummary();
+                const summary = await storage_1.storage.getSupplierExpenditureSummary();
                 io.emit("supplierSummaryChanged", summary);
             }
             catch (error) {
@@ -1147,7 +1200,7 @@ async function registerRoutes(app, io) {
     app.get("/api/expenditures/supplier-summary", (req, res) => {
         (async () => {
             try {
-                const summary = await storage_js_1.storage.getSupplierExpenditureSummary();
+                const summary = await storage_1.storage.getSupplierExpenditureSummary();
                 res.json(summary);
             }
             catch (error) {
@@ -1164,7 +1217,7 @@ async function registerRoutes(app, io) {
                 if (!supplier || !amount || !paymentMethod) {
                     return res.status(400).json({ success: false, error: 'Supplier, amount, and payment method are required' });
                 }
-                const result = await storage_js_1.storage.createSupplierPayment({ supplierId: parseInt(supplier), amount, paymentMethod, description });
+                const result = await storage_1.storage.createSupplierPayment({ supplierId: parseInt(supplier), amount, paymentMethod, description });
                 if (result) {
                     res.json({
                         success: true,
@@ -1179,7 +1232,7 @@ async function registerRoutes(app, io) {
                         message: `Payment of â‚¹${amount} recorded for ${supplier}`
                     });
                     io.emit("supplierPaymentMade", { supplierId: parseInt(supplier), amount, paymentMethod, description });
-                    const summary = await storage_js_1.storage.getSupplierExpenditureSummary();
+                    const summary = await storage_1.storage.getSupplierExpenditureSummary();
                     io.emit("supplierSummaryChanged", summary);
                 }
                 else {
@@ -1223,7 +1276,7 @@ async function registerRoutes(app, io) {
                     default:
                         startDate = new Date(0);
                 }
-                const transactions = await storage_js_1.storage.getTransactions(1000, 0);
+                const transactions = await storage_1.storage.getTransactions(1000, 0);
                 const filteredTransactions = transactions.filter(t => {
                     const transactionDate = new Date(t.createdAt);
                     return transactionDate >= startDate && transactionDate <= endDate;
@@ -1272,7 +1325,7 @@ async function registerRoutes(app, io) {
     });
     app.get("/api/export/excel", async (req, res) => {
         try {
-            const transactions = await storage_js_1.storage.getTransactions(1000, 0);
+            const transactions = await storage_1.storage.getTransactions(1000, 0);
             const workbook = new exceljs_1.default.Workbook();
             const worksheet = workbook.addWorksheet('Transactions');
             worksheet.columns = [
@@ -1344,7 +1397,7 @@ async function registerRoutes(app, io) {
                     period_start: validatedData.periodStart,
                     period_end: validatedData.periodEnd
                 };
-                const groupedExpenditure = await storage_js_1.storage.createGroupedExpenditure(dbData);
+                const groupedExpenditure = await storage_1.storage.createGroupedExpenditure(dbData);
                 res.json({ success: true, data: groupedExpenditure, message: 'Grouped expenditure created successfully' });
                 io.emit('groupedExpenditureCreated', groupedExpenditure);
             }
@@ -1387,7 +1440,7 @@ async function registerRoutes(app, io) {
                 const dateRange = req.query.dateRange;
                 let groupedExpenditures;
                 if (search) {
-                    groupedExpenditures = await storage_js_1.storage.searchGroupedExpenditures(search);
+                    groupedExpenditures = await storage_1.storage.searchGroupedExpenditures(search);
                 }
                 else if (dateRange) {
                     const today = new Date();
@@ -1410,10 +1463,10 @@ async function registerRoutes(app, io) {
                         default:
                             startDate = new Date(0);
                     }
-                    groupedExpenditures = await storage_js_1.storage.getGroupedExpendituresByDateRange(startDate, endDate);
+                    groupedExpenditures = await storage_1.storage.getGroupedExpendituresByDateRange(startDate, endDate);
                 }
                 else {
-                    groupedExpenditures = await storage_js_1.storage.getGroupedExpenditures(limit, offset);
+                    groupedExpenditures = await storage_1.storage.getGroupedExpenditures(limit, offset);
                 }
                 res.json(groupedExpenditures);
             }
@@ -1428,7 +1481,7 @@ async function registerRoutes(app, io) {
         (async () => {
             try {
                 const id = parseInt(req.params.id);
-                const groupedExpenditure = await storage_js_1.storage.getGroupedExpenditure(id);
+                const groupedExpenditure = await storage_1.storage.getGroupedExpenditure(id);
                 if (!groupedExpenditure) {
                     return res.status(404).json({ message: "Grouped expenditure not found" });
                 }
@@ -1446,7 +1499,7 @@ async function registerRoutes(app, io) {
             try {
                 const id = parseInt(req.params.id);
                 const validatedData = schema_1.insertGroupedExpenditureSchema.partial().parse(req.body);
-                const groupedExpenditure = await storage_js_1.storage.updateGroupedExpenditure(id, validatedData);
+                const groupedExpenditure = await storage_1.storage.updateGroupedExpenditure(id, validatedData);
                 if (!groupedExpenditure) {
                     return res.status(404).json({ message: "Grouped expenditure not found" });
                 }
@@ -1471,7 +1524,7 @@ async function registerRoutes(app, io) {
         (async () => {
             try {
                 const id = parseInt(req.params.id);
-                const success = await storage_js_1.storage.deleteGroupedExpenditure(id);
+                const success = await storage_1.storage.deleteGroupedExpenditure(id);
                 if (!success) {
                     return res.status(404).json({ message: "Grouped expenditure not found" });
                 }
@@ -1491,7 +1544,7 @@ async function registerRoutes(app, io) {
         (async () => {
             try {
                 const validatedData = schema_1.insertGroupedExpenditurePaymentSchema.parse(req.body);
-                const payment = await storage_js_1.storage.createGroupedExpenditurePayment(validatedData);
+                const payment = await storage_1.storage.createGroupedExpenditurePayment(validatedData);
                 res.json({ success: true, data: payment, message: 'Payment created successfully' });
                 io.emit('groupedExpenditurePaymentCreated', payment);
             }
@@ -1513,7 +1566,7 @@ async function registerRoutes(app, io) {
         (async () => {
             try {
                 const groupedExpenditureId = parseInt(req.params.groupedExpenditureId);
-                const payments = await storage_js_1.storage.getGroupedExpenditurePayments(groupedExpenditureId);
+                const payments = await storage_1.storage.getGroupedExpenditurePayments(groupedExpenditureId);
                 res.json(payments);
             }
             catch (error) {
@@ -1527,7 +1580,7 @@ async function registerRoutes(app, io) {
         (async () => {
             try {
                 const id = parseInt(req.params.id);
-                const success = await storage_js_1.storage.deleteGroupedExpenditurePayment(id);
+                const success = await storage_1.storage.deleteGroupedExpenditurePayment(id);
                 if (!success) {
                     return res.status(404).json({ message: "Payment not found" });
                 }
@@ -1546,7 +1599,7 @@ async function registerRoutes(app, io) {
     app.get("/api/grouped-expenditures/summary", (req, res) => {
         (async () => {
             try {
-                const summary = await storage_js_1.storage.getGroupedExpenditures(50, 0);
+                const summary = await storage_1.storage.getGroupedExpenditures(50, 0);
                 res.json(summary);
             }
             catch (error) {
@@ -1681,7 +1734,7 @@ async function registerRoutes(app, io) {
     });
     app.get('/api/suppliers/expenditure-summary', async (req, res) => {
         try {
-            const summary = await storage_js_1.storage.getSupplierExpenditureSummary();
+            const summary = await storage_1.storage.getSupplierExpenditureSummary();
             res.json(summary);
         }
         catch (error) {
@@ -1765,7 +1818,7 @@ async function registerRoutes(app, io) {
     });
     app.get('/api/statistics/today', async (req, res) => {
         try {
-            const stats = await storage_js_1.storage.getTodayStats();
+            const stats = await storage_1.storage.getTodayStats();
             res.json(stats);
         }
         catch (error) {
@@ -1775,7 +1828,7 @@ async function registerRoutes(app, io) {
     });
     app.get('/api/statistics/week', async (req, res) => {
         try {
-            const stats = await storage_js_1.storage.getWeeklyStatistics();
+            const stats = await storage_1.storage.getWeeklyStatistics();
             res.json({ data: stats });
         }
         catch (error) {
@@ -1785,7 +1838,7 @@ async function registerRoutes(app, io) {
     });
     app.get('/api/statistics/month', async (req, res) => {
         try {
-            const stats = await storage_js_1.storage.getMonthStats();
+            const stats = await storage_1.storage.getMonthStats();
             res.json(stats);
         }
         catch (error) {
@@ -1795,7 +1848,7 @@ async function registerRoutes(app, io) {
     });
     app.get('/api/statistics/year', async (req, res) => {
         try {
-            const stats = await storage_js_1.storage.getYearStats();
+            const stats = await storage_1.storage.getYearStats();
             res.json(stats);
         }
         catch (error) {
@@ -1805,7 +1858,7 @@ async function registerRoutes(app, io) {
     });
     app.post('/api/suppliers/payments', supabase_auth_middleware_1.requireNotDemo, async (req, res) => {
         try {
-            const payment = await storage_js_1.storage.createSupplierPayment(req.body);
+            const payment = await storage_1.storage.createSupplierPayment(req.body);
             res.json({ success: true, data: payment, message: 'Payment created successfully' });
             io.emit("paymentCreated", payment);
         }
@@ -1836,7 +1889,7 @@ async function registerRoutes(app, io) {
                 const shop_id = req.query.shop_id;
                 if (!shop_id)
                     return res.status(400).json({ error: 'shop_id required' });
-                const data = await storage_js_1.storage.backupShopData(shop_id);
+                const data = await storage_1.storage.backupShopData(shop_id);
                 res.json(data);
             }
             catch (e) {
@@ -1853,7 +1906,7 @@ async function registerRoutes(app, io) {
                 const data = req.body.data;
                 if (!shop_id || !data)
                     return res.status(400).json({ error: 'shop_id and data required' });
-                await storage_js_1.storage.restoreShopData(shop_id, data);
+                await storage_1.storage.restoreShopData(shop_id, data);
                 res.json({ success: true });
             }
             catch (e) {
@@ -1871,7 +1924,7 @@ async function registerRoutes(app, io) {
                 const end = req.query.end;
                 if (!shop_id || !start || !end)
                     return res.status(400).json({ error: 'shop_id, start, end required' });
-                const tx = await storage_js_1.storage.getTransactionsByDateRangeForShop(shop_id, new Date(start), new Date(end));
+                const tx = await storage_1.storage.getTransactionsByDateRangeForShop(shop_id, new Date(start), new Date(end));
                 res.json(tx);
             }
             catch (e) {
@@ -1889,7 +1942,7 @@ async function registerRoutes(app, io) {
                 const end = req.query.end;
                 if (!shop_id || !start || !end)
                     return res.status(400).json({ error: 'shop_id, start, end required' });
-                const bills = await storage_js_1.storage.getBillsByDateRangeForShop(shop_id, new Date(start), new Date(end));
+                const bills = await storage_1.storage.getBillsByDateRangeForShop(shop_id, new Date(start), new Date(end));
                 res.json(bills);
             }
             catch (e) {
@@ -1907,7 +1960,7 @@ async function registerRoutes(app, io) {
                 const end = req.query.end;
                 if (!shop_id || !start || !end)
                     return res.status(400).json({ error: 'shop_id, start, end required' });
-                const exps = await storage_js_1.storage.getExpendituresByDateRangeForShop(shop_id, new Date(start), new Date(end));
+                const exps = await storage_1.storage.getExpendituresByDateRangeForShop(shop_id, new Date(start), new Date(end));
                 res.json(exps);
             }
             catch (e) {
@@ -1923,7 +1976,7 @@ async function registerRoutes(app, io) {
                 const { billId, feedback } = req.body;
                 if (!billId || !feedback)
                     return res.status(400).json({ error: 'billId and feedback required' });
-                await storage_js_1.storage.saveFeedback(billId, feedback);
+                await storage_1.storage.saveFeedback(billId, feedback);
                 res.json({ success: true });
             }
             catch (e) {
@@ -1937,7 +1990,7 @@ async function registerRoutes(app, io) {
         (async () => {
             try {
                 const billId = req.params.billId;
-                const feedback = await storage_js_1.storage.getFeedback(billId);
+                const feedback = await storage_1.storage.getFeedback(billId);
                 res.json({ feedback });
             }
             catch (e) {
@@ -1949,7 +2002,7 @@ async function registerRoutes(app, io) {
     });
     app.get('/api/dashboard/totals', async (req, res) => {
         try {
-            const totals = await storage_js_1.storage.getDashboardTotals();
+            const totals = await storage_1.storage.getDashboardTotals();
             res.json(totals);
         }
         catch (error) {
@@ -1959,7 +2012,7 @@ async function registerRoutes(app, io) {
     });
     app.get('/api/dashboard/weekly-statistics', async (req, res) => {
         try {
-            const weeklyStats = await storage_js_1.storage.getWeeklyStatistics();
+            const weeklyStats = await storage_1.storage.getWeeklyStatistics();
             res.json(weeklyStats);
         }
         catch (error) {
@@ -1970,7 +2023,7 @@ async function registerRoutes(app, io) {
     app.get('/api/dashboard/recent-transactions', async (req, res) => {
         try {
             const limit = parseInt(req.query.limit) || 5;
-            const transactions = await storage_js_1.storage.getRecentTransactions(limit);
+            const transactions = await storage_1.storage.getRecentTransactions(limit);
             res.json(transactions);
         }
         catch (error) {
@@ -1984,7 +2037,7 @@ async function registerRoutes(app, io) {
             if (!userId) {
                 return res.status(401).json({ error: 'User not authenticated' });
             }
-            const settings = await storage_js_1.storage.getUserSettings(userId);
+            const settings = await storage_1.storage.getUserSettings(userId);
             res.json(settings);
         }
         catch (error) {
@@ -1997,7 +2050,7 @@ async function registerRoutes(app, io) {
             const q = req.query.q || '';
             const userRole = req.user?.role;
             console.log(`🔍 Search transactions by role: ${userRole || 'guest'}, query: "${q}"`);
-            const results = await storage_js_1.storage.searchTransactions(q, userRole);
+            const results = await storage_1.storage.searchTransactions(q, userRole);
             res.json({
                 results: results,
                 total: results.length,
@@ -2016,7 +2069,7 @@ async function registerRoutes(app, io) {
             const q = req.query.q || '';
             const userRole = req.user?.role;
             console.log(`🔍 Search suppliers by role: ${userRole || 'guest'}, query: "${q}"`);
-            const results = await storage_js_1.storage.searchSuppliers(q);
+            const results = await storage_1.storage.searchSuppliers(q);
             res.json({
                 results: results,
                 total: results.length,
@@ -2032,7 +2085,7 @@ async function registerRoutes(app, io) {
     app.get('/api/reports/date-range', async (req, res) => {
         try {
             const range = req.query.range;
-            const reports = await storage_js_1.storage.getReportsByDateRange(range);
+            const reports = await storage_1.storage.getReportsByDateRange(range);
             res.json(reports);
         }
         catch (error) {

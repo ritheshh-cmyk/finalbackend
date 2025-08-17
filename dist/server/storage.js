@@ -4,9 +4,7 @@ exports.storage = void 0;
 exports.isTransactionOlderThan24Hours = isTransactionOlderThan24Hours;
 exports.canWorkerModifyTransaction = canWorkerModifyTransaction;
 const supabase_js_1 = require("@supabase/supabase-js");
-const supabaseUrl = 'https://rlmebwbzqmoxqevmzddp.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsbWVid2J6cW1veHFldm16ZGRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQxOTczNjEsImV4cCI6MjA0OTc3MzM2MX0.fQnEzf1r8PpAOqTmBsVULIyLBvGFbC1SU1VJOKhW_J8';
-const supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey);
+const supabase = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL || '', process.env.SUPABASE_SERVICE_ROLE_KEY || '');
 function isTransactionOlderThan24Hours(createdAt) {
     const transactionDate = new Date(createdAt);
     const now = new Date();
@@ -520,31 +518,32 @@ class DatabaseStorage {
     async getDashboardTotals(userRole) {
         try {
             console.log('📊 Getting dashboard totals for role:', userRole || 'no-role');
-            const { data: transactions, error } = await supabase
+            const { data: transactions, error: txError, count } = await supabase
                 .from('transactions')
-                .select('*')
+                .select('*', { count: 'exact' })
                 .order('created_at', { ascending: false });
-            if (error) {
-                console.error('Error getting transactions for dashboard:', error);
-                throw error;
+            if (txError) {
+                console.error('❌ Error getting transactions for dashboard:', txError);
+                throw txError;
             }
             let transactionList = transactions || [];
-            console.log(`Found ${transactionList.length} total transactions for dashboard`);
+            console.log(`✅ Found ${transactionList.length} total transactions for dashboard (total count: ${count})`);
             if (userRole === 'worker') {
                 transactionList = transactionList.slice(0, 20);
-                console.log(`🚫 Worker role detected - showing latest 20 transactions: ${transactionList.length} transactions`);
+                console.log(`🚫 Worker role - showing latest 20 transactions: ${transactionList.length}`);
             }
             else {
-                console.log(`✅ Full access role detected - showing all data: ${transactionList.length} transactions`);
+                console.log(`✅ Full access role - showing all data: ${transactionList.length} transactions`);
             }
             let totalRevenue = 0;
             let totalProfit = 0;
             let completedCount = 0;
             let pendingCount = 0;
             transactionList.forEach(transaction => {
-                const revenue = parseFloat(transaction.repair_cost) || 0;
-                totalRevenue += revenue;
-                const profit = parseFloat(transaction.profit) || 0;
+                const amountGiven = parseFloat(transaction.amount_given) || 0;
+                const repairCost = parseFloat(transaction.repair_cost) || 0;
+                const profit = parseFloat(transaction.profit) || (amountGiven - repairCost);
+                totalRevenue += amountGiven;
                 totalProfit += profit;
                 if (transaction.status === 'completed' || transaction.status === 'Completed') {
                     completedCount++;
@@ -552,10 +551,11 @@ class DatabaseStorage {
                 else if (transaction.status === 'pending' || transaction.status === 'Pending') {
                     pendingCount++;
                 }
+                if (amountGiven > 0) {
+                    console.log(`Transaction ${transaction.id}: Revenue ₹${amountGiven} Cost ₹${repairCost} Profit ₹${profit}`);
+                }
             });
-            const { data: suppliers } = await supabase
-                .from('suppliers')
-                .select('*');
+            const { data: suppliers } = await supabase.from('suppliers').select('*');
             const result = {
                 totalTransactions: transactionList.length,
                 totalRevenue,
@@ -568,13 +568,23 @@ class DatabaseStorage {
                 pendingTransactions: pendingCount,
                 profitMargin: totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0,
                 userRole: userRole || 'guest',
-                dataRestricted: userRole === 'worker'
+                dataRestricted: userRole === 'worker',
+                debugInfo: {
+                    databaseCount: count,
+                    filteredCount: transactionList.length,
+                    sampleRevenue: transactionList.slice(0, 3).map(t => parseFloat(t.repair_cost) || 0)
+                }
             };
-            console.log('✅ Dashboard totals calculated for role', userRole, ':', result);
+            console.log('✅ Dashboard totals calculated:', {
+                totalTransactions: result.totalTransactions,
+                totalRevenue: result.totalRevenue,
+                totalProfit: result.totalProfit,
+                role: userRole
+            });
             return result;
         }
         catch (error) {
-            console.error('Error in getDashboardTotals:', error);
+            console.error('❌ Error in getDashboardTotals:', error);
             return {
                 totalTransactions: 0,
                 totalRevenue: 0,
@@ -585,6 +595,7 @@ class DatabaseStorage {
                 avgTransactionValue: 0,
                 completedTransactions: 0,
                 pendingTransactions: 0,
+                error: error.message
             };
         }
     }

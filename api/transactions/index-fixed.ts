@@ -33,32 +33,11 @@ export default async function handler(req: any, res: any) {
 async function getTransactions(req: any, res: any, user: any) {
   const transactions = await sql(
     `SELECT 
-      id, 
-      customer_name as "customerName", 
-      mobile_number as "mobileNumber",
-      device_model as "deviceModel", 
-      repair_type as "repairType",
-      repair_cost as "repairCost", 
-      actual_cost as "actualCost",
-      profit,
-      payment_method as "paymentMethod",
-      amount_given as "amountGiven", 
-      change_returned as "changeReturned",
-      external_store_name as "externalStoreName",
-      external_item_name as "externalItemName", 
-      external_item_cost as "externalItemCost",
-      internal_cost as "internalCost",
-      free_glass_installation as "freeGlassInstallation",
-      status, 
-      remarks, 
-      requires_inventory as "requiresInventory",
-      supplier_name as "supplierName",
-      parts_cost as "partsCost",
-      custom_supplier_name as "customSupplierName",
-      external_purchases as "externalPurchases",
-      shop_id as "shopId", 
-      created_at as "createdAt",
-      repair_service_type as "repairServiceType"
+      id, customer_name as "customerName", mobile_number as "mobileNumber",
+      device_model as "deviceModel", repair_type as "repairType",
+      repair_cost as "repairCost", payment_method as "paymentMethod",
+      amount_given as "amountGiven", change_returned as "changeReturned",
+      status, remarks, parts_cost as "partsCost", created_at as "createdAt"
     FROM transactions 
     ORDER BY created_at DESC`
   );
@@ -86,44 +65,33 @@ async function createTransaction(req: any, res: any, user: any) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  // Calculate profit for real-time business metrics
-  const amount = parseFloat(amountGiven) || parseFloat(repairCost) || 0;
-  const cost = parseFloat(repairCost) || 0;
-  const profit = amount - cost;
-
-  // Insert transaction with proper field mapping
+  // Insert transaction
   const result = await sql(
     `INSERT INTO transactions (
       customer_name, mobile_number, device_model, repair_type, repair_cost,
       payment_method, amount_given, change_returned, status, remarks, parts_cost,
-      free_glass_installation, requires_inventory, profit, actual_cost
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
-     RETURNING id, customer_name as "customerName", device_model as "deviceModel", 
-               amount_given as "amountGiven", repair_cost as "repairCost", 
-               profit, status, created_at as "createdAt"`,
+      free_glass_installation, requires_inventory
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
     [
       customerName, 
       mobileNumber, 
       deviceModel, 
       repairType, 
-      cost,                        // Use calculated cost
+      repairCost,
       paymentMethod || 'Cash', 
-      amount,                      // Use calculated amount
-      parseFloat(changeReturned) || 0,
+      amountGiven || repairCost, 
+      changeReturned || 0,
       status || 'Completed', 
       remarks || '', 
       JSON.stringify(partsCost || []),
-      false,                       // free_glass_installation
-      false,                       // requires_inventory  
-      profit,                      // calculated profit
-      cost                         // actual_cost = repair_cost
+      false, 
+      false
     ]
   );
 
   const transactionId = result[0].id;
-  const createdTransaction = result[0];
 
-  // Create expenditures for parts (real-time expense tracking)
+  // Create expenditures for parts
   if (partsCost && Array.isArray(partsCost) && partsCost.length > 0) {
     for (const part of partsCost) {
       await sql(
@@ -141,18 +109,10 @@ async function createTransaction(req: any, res: any, user: any) {
     }
   }
 
-  // Return real-time transaction data with proper field format
   return res.status(201).json({
     success: true,
     message: 'Transaction created successfully',
-    transactionId,
-    transaction: createdTransaction,  // Include full transaction data for immediate frontend update
-    realTime: {
-      created: true,
-      timestamp: new Date().toISOString(),
-      profit: createdTransaction.profit || profit,
-      revenue: createdTransaction.amountGiven || amount
-    }
+    transactionId
   });
 }
 
