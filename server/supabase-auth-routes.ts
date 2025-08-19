@@ -118,6 +118,41 @@ router.post('/login', async (req, res) => {
 });
 
 /**
+ * Verify JWT token and get current user
+ */
+router.get('/verify', requireAuth, async (req, res) => {
+  try {
+    // If we reach here, the requireAuth middleware has already verified the token
+    const user = req.user;
+    
+    if (!user) {
+      return res.status(401).json({ 
+        error: 'Invalid token',
+        code: 'INVALID_TOKEN'
+      });
+    }
+
+    res.json({
+      valid: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        email: user.email,
+        shop_id: user.shop_id
+      }
+    });
+    
+  } catch (error) {
+    logger.error('❌ Token verification error:', error);
+    res.status(401).json({ 
+      error: 'Token verification failed',
+      code: 'VERIFICATION_FAILED'
+    });
+  }
+});
+
+/**
  * Register new user (Admin only)
  */
 router.post('/register', requireAuth, requireRole('admin'), async (req, res) => {
