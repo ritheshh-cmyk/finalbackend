@@ -103,6 +103,34 @@ router.post('/login', async (req, res) => {
         });
     }
 });
+router.get('/verify', supabase_auth_middleware_1.requireAuth, async (req, res) => {
+    try {
+        const user = req.user;
+        if (!user) {
+            return res.status(401).json({
+                error: 'Invalid token',
+                code: 'INVALID_TOKEN'
+            });
+        }
+        res.json({
+            valid: true,
+            user: {
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                email: user.email,
+                shop_id: user.shop_id
+            }
+        });
+    }
+    catch (error) {
+        logger_1.default.error('❌ Token verification error:', error);
+        res.status(401).json({
+            error: 'Token verification failed',
+            code: 'VERIFICATION_FAILED'
+        });
+    }
+});
 router.post('/register', supabase_auth_middleware_1.requireAuth, (0, supabase_auth_middleware_1.requireRole)('admin'), async (req, res) => {
     try {
         const { username, email, password, role, shop_id } = req.body;

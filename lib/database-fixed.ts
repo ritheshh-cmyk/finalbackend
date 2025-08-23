@@ -74,7 +74,7 @@ export async function sql(query: string, params: any[] = []): Promise<any> {
   const client = await pool.connect();
   try {
     const result = await client.query(query, params);
-    return result.rows;
+    return result;
   } catch (error) {
     console.error('SQL Query Error:', {
       query: query.substring(0, 100) + '...',
@@ -86,23 +86,5 @@ export async function sql(query: string, params: any[] = []): Promise<any> {
     client.release();
   }
 }
-
-// Skip database initialization during startup to avoid connection issues
-export const createTables = async () => {
-  console.log('✅ Database initialization skipped - tables already exist in Supabase');
-  console.log('✅ Server starting with enhanced database connection');
-  // Database connection will be tested when first API call is made
-};
-
-// Initialize database
-export const initializeDatabase = async () => {
-  try {
-    await createTables();
-    console.log('✅ Database initialized successfully');
-  } catch (error) {
-    console.error('❌ Database initialization error:', error);
-    throw error;
-  }
-};
 
 export { pool };

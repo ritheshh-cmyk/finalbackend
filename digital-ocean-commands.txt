@@ -1,0 +1,21 @@
+
+# 🚀 RUN THESE COMMANDS ON YOUR DIGITAL OCEAN SERVER
+# ================================================
+
+# 1. SSH to your Digital Ocean server
+# ssh root@your-server-ip
+
+# 2. Make the deployment script executable and run it
+chmod +x deploy-production-fix.sh
+./deploy-production-fix.sh
+
+# 3. Verify deployment
+pm2 status
+pm2 logs callmemobiles-backend --lines 50
+
+# 4. Test authentication
+curl -X POST https://expensoo-app-gu3wg.ondigitalocean.app/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"callmeowner","password":"owner@777"}'
+
+# Expected: Should return 401 "Invalid credentials" or 200 with token (not 500)

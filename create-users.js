@@ -29,7 +29,7 @@ async function createDefaultUsers() {
         const defaultUsers = [
             {
                 email: 'admin@example.com',
-                password: 'admin123',
+                password: 'lucky777',
                 username: 'admin',
                 role: 'admin'
             },
