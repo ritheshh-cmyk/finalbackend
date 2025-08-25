@@ -72,6 +72,7 @@ async function createTransaction(req: any, res: any, user: any) {
   const {
     customerName,
     mobileNumber,
+    phoneNumber,      // Frontend might send this instead
     deviceModel,
     repairType,
     repairCost,
@@ -83,11 +84,14 @@ async function createTransaction(req: any, res: any, user: any) {
     partsCost
   } = req.body;
 
+  // Handle both mobileNumber and phoneNumber field names
+  const finalMobileNumber = mobileNumber || phoneNumber;
+
   // Enhanced validation with specific error messages
   const validationErrors = [];
   
   if (!customerName) validationErrors.push('customerName is required');
-  if (!mobileNumber) validationErrors.push('mobileNumber is required');
+  if (!finalMobileNumber) validationErrors.push('mobileNumber or phoneNumber is required');
   if (!deviceModel) validationErrors.push('deviceModel is required');
   if (!repairType) validationErrors.push('repairType is required');
   if (!repairCost) validationErrors.push('repairCost is required');
@@ -150,14 +154,14 @@ async function createTransaction(req: any, res: any, user: any) {
                profit, status, created_at as "createdAt"`,
     [
       customerName, 
-      mobileNumber, 
+      finalMobileNumber,    // Use the mobile number from either field
       deviceModel, 
       repairType, 
       cost,                        // Use calculated cost
-      paymentMethod || 'cash',     // Fixed: lowercase 'cash'
-      amount,                      // Use validated amount
-      parseFloat(changeReturned) || 0,
-      status || 'completed',       // Fixed: lowercase 'completed'
+      paymentMethod || 'cash',     // Default payment method
+      amount,                      // Use validated amountGiven
+      parseFloat(changeReturned) || (amount - cost), // Calculate change if not provided
+      status || 'completed',       // Default status
       remarks || '', 
       JSON.stringify(partsCost || []),
       false,                       // free_glass_installation
