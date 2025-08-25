@@ -67,6 +67,8 @@ async function getTransactions(req: any, res: any, user: any) {
 }
 
 async function createTransaction(req: any, res: any, user: any) {
+  console.log("📥 Received transaction data:", req.body);
+  
   const {
     customerName,
     mobileNumber,
@@ -81,17 +83,62 @@ async function createTransaction(req: any, res: any, user: any) {
     partsCost
   } = req.body;
 
-  // Validate required fields
-  if (!customerName || !mobileNumber || !deviceModel || !repairType || !repairCost) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  // Enhanced validation with specific error messages
+  const validationErrors = [];
+  
+  if (!customerName) validationErrors.push('customerName is required');
+  if (!mobileNumber) validationErrors.push('mobileNumber is required');
+  if (!deviceModel) validationErrors.push('deviceModel is required');
+  if (!repairType) validationErrors.push('repairType is required');
+  if (!repairCost) validationErrors.push('repairCost is required');
+  
+  // Enhanced amountGiven validation
+  if (amountGiven === undefined || amountGiven === null) {
+    validationErrors.push('amountGiven is required');
+  } else {
+    const numericAmountGiven = Number(amountGiven);
+    if (isNaN(numericAmountGiven)) {
+      validationErrors.push('amountGiven must be a valid number');
+    } else if (numericAmountGiven < 0) {
+      validationErrors.push('amountGiven must be 0 or greater');
+    } else if (numericAmountGiven === 0) {
+      validationErrors.push('amountGiven must be greater than 0');
+    }
   }
 
-  // Calculate profit for real-time business metrics
-  const amount = parseFloat(amountGiven) || parseFloat(repairCost) || 0;
+  if (validationErrors.length > 0) {
+    console.error("❌ Validation errors:", validationErrors);
+    return res.status(400).json({ 
+      success: false,
+      error: 'Validation failed',
+      details: validationErrors,
+      received_fields: Object.keys(req.body)
+    });
+  }
+
+  // Ensure proper number conversion
+  const numericAmountGiven = Number(amountGiven);
+  console.log("💰 Amount calculations:", {
+    amountGiven: amountGiven,
+    parsedAmount: numericAmountGiven,
+    repairCost: repairCost,
+    type_amountGiven: typeof amountGiven,
+    type_parsed: typeof numericAmountGiven
+  });
+
+  // Calculate profit for real-time business metrics using validated amountGiven
+  const amount = numericAmountGiven;
   const cost = parseFloat(repairCost) || 0;
   const profit = amount - cost;
 
-  // Insert transaction with proper field mapping
+  console.log("🔢 Final calculations:", {
+    amount: amount,
+    cost: cost,  
+    profit: profit,
+    changeReturned: parseFloat(changeReturned) || 0
+  });
+
+  // Insert transaction with proper field mapping (database uses snake_case)
   const result = await sql(
     `INSERT INTO transactions (
       customer_name, mobile_number, device_model, repair_type, repair_cost,
@@ -107,10 +154,10 @@ async function createTransaction(req: any, res: any, user: any) {
       deviceModel, 
       repairType, 
       cost,                        // Use calculated cost
-      paymentMethod || 'Cash', 
-      amount,                      // Use calculated amount
+      paymentMethod || 'cash',     // Fixed: lowercase 'cash'
+      amount,                      // Use validated amount
       parseFloat(changeReturned) || 0,
-      status || 'Completed', 
+      status || 'completed',       // Fixed: lowercase 'completed'
       remarks || '', 
       JSON.stringify(partsCost || []),
       false,                       // free_glass_installation
@@ -122,6 +169,13 @@ async function createTransaction(req: any, res: any, user: any) {
 
   const transactionId = result[0].id;
   const createdTransaction = result[0];
+
+  console.log("✅ Transaction created successfully:", {
+    id: transactionId,
+    customerName: createdTransaction.customerName,
+    amountGiven: createdTransaction.amountGiven,
+    profit: createdTransaction.profit
+  });
 
   // Create expenditures for parts (real-time expense tracking)
   if (partsCost && Array.isArray(partsCost) && partsCost.length > 0) {
